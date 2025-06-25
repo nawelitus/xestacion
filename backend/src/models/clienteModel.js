@@ -3,23 +3,82 @@ import pool from '../config/db.js';
 const ClienteModel = {
   /**
    * Busca un cliente por su nombre. Si no lo encuentra, lo crea.
+   * Usado internamente durante la carga de Cierres Z.
    * @param {string} nombreCliente - El nombre del cliente a buscar/crear.
    * @param {object} connection - Una conexión activa de la base de datos para transacciones.
    * @returns {Promise<number>} El ID del cliente encontrado o recién creado.
    */
   async buscarOCrear(nombreCliente, connection) {
-    // 1. Intentar buscar el cliente
-    let [filas] = await connection.query('SELECT id FROM clientes WHERE nombre = ?', [nombreCliente]);
+    const [filas] = await connection.query('SELECT id FROM clientes WHERE nombre = ?', [nombreCliente]);
     
     if (filas.length > 0) {
-      // Cliente encontrado, devolver su ID
       return filas[0].id;
     } else {
-      // 2. Cliente no encontrado, proceder a crearlo
       const [resultado] = await connection.query('INSERT INTO clientes (nombre) VALUES (?)', [nombreCliente]);
-      // Devolver el ID del nuevo cliente
       return resultado.insertId;
     }
+  },
+
+  /**
+   * @NUEVO
+   * Lista todos los clientes junto con el saldo de su cuenta corriente.
+   * Utiliza la vista `vista_saldos_cta_cte` para eficiencia.
+   * @returns {Promise<Array>} Un arreglo de objetos, cada uno representando un cliente y su saldo.
+   */
+  async listarConSaldos() {
+    // La vista ya nos da los saldos calculados de forma eficiente.
+    const [filas] = await pool.query('SELECT * FROM vista_saldos_cta_cte ORDER BY cliente_nombre ASC');
+    return filas;
+  },
+
+  /**
+   * @NUEVO
+   * Busca un cliente específico por su ID y su saldo actual.
+   * @param {number} id - El ID del cliente a buscar.
+   * @returns {Promise<object|null>} El objeto del cliente con su saldo o null si no se encuentra.
+   */
+  async buscarPorIdConSaldo(id) {
+    const [filas] = await pool.query(
+        `SELECT c.*, v.saldo_actual 
+         FROM clientes c
+         LEFT JOIN vista_saldos_cta_cte v ON c.id = v.cliente_id
+         WHERE c.id = ?`,
+        [id]
+    );
+    return filas[0] || null;
+  },
+
+  /**
+   * @NUEVO
+   * Obtiene todos los movimientos (débitos y créditos) de la cuenta corriente de un cliente.
+   * @param {number} clienteId - El ID del cliente.
+   * @returns {Promise<Array>} Un arreglo con todos los movimientos del cliente.
+   */
+  async obtenerMovimientosPorClienteId(clienteId) {
+    const [filas] = await pool.query(
+      'SELECT * FROM movimientos_cta_cte WHERE cliente_id = ? ORDER BY fecha DESC, id DESC',
+      [clienteId]
+    );
+    return filas;
+  },
+
+  /**
+   * @NUEVO
+   * Registra un nuevo movimiento en la cuenta corriente de un cliente (típicamente un pago).
+   * @param {number} clienteId - El ID del cliente que realiza el pago.
+   * @param {string} tipo - El tipo de movimiento ('CREDITO' para pagos, 'DEBITO' para cargos).
+   * @param {string} concepto - La descripción del movimiento.
+   * @param {number} monto - El monto del movimiento.
+   * @param {number} usuarioId - El ID del usuario que registra la operación.
+   * @returns {Promise<object>} El resultado de la inserción.
+   */
+  async registrarMovimiento(clienteId, tipo, concepto, monto, usuarioId) {
+    const [resultado] = await pool.query(
+      `INSERT INTO movimientos_cta_cte (cliente_id, fecha, tipo, concepto, monto, usuario_registro_id) 
+       VALUES (?, NOW(), ?, ?, ?, ?)`,
+      [clienteId, tipo, concepto, monto, usuarioId]
+    );
+    return resultado;
   }
 };
 

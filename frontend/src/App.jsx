@@ -1,4 +1,4 @@
-// Contenido COMPLETO y CORREGIDO para: src/App.jsx
+// Contenido COMPLETO y ACTUALIZADO para: src/App.jsx
 
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import Layout from './components/Layout';
@@ -7,6 +7,10 @@ import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
 import CierreDetalle from './pages/CierreDetalle'; 
 import { AuthProvider } from './context/AuthContext';
+
+// --- AÑADIR IMPORTS DE LAS NUEVAS PÁGINAS ---
+import CuentasCorrientes from './pages/CuentasCorrientes';
+import ClienteDetalle from './pages/ClienteDetalle';
 
 function App() {
   return (
@@ -17,21 +21,17 @@ function App() {
           <Route path="/" element={<Login />} />
 
           {/* 2. GRUPO DE RUTAS PROTEGIDAS */}
-          {/* RutaProtegida ahora envuelve a Layout, que a su vez envuelve a las páginas */}
           <Route element={<RutaProtegida />}>
             <Route path="/dashboard" element={<Layout />}>
-              {/* Esta ruta (index) se renderizará en el <Outlet/> de Layout cuando la URL sea exactamente "/dashboard" */}
               <Route index element={<Dashboard />} />
-
-              {/* Esta ruta se renderizará en el <Outlet/> de Layout cuando la URL sea "/dashboard/cierres/:id" */}
               <Route path="cierres/:id" element={<CierreDetalle />} />
+              
+              {/* --- AÑADIR NUEVAS RUTAS DE CUENTAS CORRIENTES --- */}
+              <Route path="cuentas-corrientes" element={<CuentasCorrientes />} />
+              <Route path="cuentas-corrientes/:id" element={<ClienteDetalle />} />
 
-              {/* Aquí puedes añadir futuras rutas que compartan el mismo Layout */}
-              {/* <Route path="caja" element={<CajaDiaria />} /> */}
-              {/* <Route path="cuentas-corrientes" element={<CuentasCorrientes />} /> */}
             </Route>
           </Route>
-
         </Routes>
       </AuthProvider>
     </BrowserRouter>
