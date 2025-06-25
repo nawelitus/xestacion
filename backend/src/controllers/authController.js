@@ -3,27 +3,22 @@ import jwt from 'jsonwebtoken';
 import bcrypt from 'bcryptjs';
 
 const AuthController = {
-  /**
-   * Maneja el registro de un nuevo usuario.
-   */
   async registrar(req, res) {
-    const { nombre_completo, email, password, rol } = req.body;
+    // CAMBIO: Se añade el DNI al registro
+    const { nombre_completo, email, dni, password, rol } = req.body;
 
-    // Validación básica
-    if (!nombre_completo || !email || !password || !rol) {
+    if (!nombre_completo || !email || !dni || !password || !rol) {
       return res.status(400).json({ mensaje: 'Todos los campos son obligatorios.' });
     }
 
     try {
-      // Verificar si el usuario ya existe
-      const usuarioExistente = await UsuarioModel.buscarPorEmail(email);
+      // Verificar si el email o DNI ya existen
+      const usuarioExistente = await UsuarioModel.buscarPorEmail(email) || await UsuarioModel.buscarPorDni(dni);
       if (usuarioExistente) {
-        return res.status(409).json({ mensaje: 'El correo electrónico ya está registrado.' });
+        return res.status(409).json({ mensaje: 'El correo electrónico o el DNI ya están registrados.' });
       }
 
-      // Crear el nuevo usuario
-      await UsuarioModel.crear(nombre_completo, email, password, rol);
-
+      await UsuarioModel.crear(nombre_completo, email, dni, password, rol);
       res.status(201).json({ mensaje: 'Usuario registrado exitosamente.' });
     } catch (error) {
       console.error('Error en el registro:', error);
@@ -31,49 +26,44 @@ const AuthController = {
     }
   },
 
-  /**
-   * Maneja el inicio de sesión de un usuario.
-   */
   async login(req, res) {
-    const { email, password } = req.body;
+    // CAMBIO: Ahora se usa `dni` para el login en lugar de `email`
+    const { dni, password } = req.body;
 
-    if (!email || !password) {
-      return res.status(400).json({ mensaje: 'El email y la contraseña son obligatorios.' });
+    if (!dni || !password) {
+      return res.status(400).json({ mensaje: 'El DNI y la contraseña son obligatorios.' });
     }
 
     try {
-      // Buscar al usuario por email
-      const usuario = await UsuarioModel.buscarPorEmail(email);
+      // CAMBIO: Se busca al usuario por DNI
+      const usuario = await UsuarioModel.buscarPorDni(dni);
       if (!usuario) {
-        return res.status(401).json({ mensaje: 'Credenciales inválidas.' }); // Email no encontrado
+        return res.status(401).json({ mensaje: 'Credenciales inválidas.' });
       }
 
-      // Comparar la contraseña enviada con la hasheada en la BD
       const esPasswordCorrecto = await bcrypt.compare(password, usuario.password_hash);
       if (!esPasswordCorrecto) {
-        return res.status(401).json({ mensaje: 'Credenciales inválidas.' }); // Contraseña incorrecta
+        return res.status(401).json({ mensaje: 'Credenciales inválidas.' });
       }
 
-      // Si las credenciales son correctas, crear el payload para el token
       const payload = {
         usuario: {
           id: usuario.id,
           rol: usuario.rol,
-          nombre: usuario.nombre_completo
+          nombre: usuario.nombre_completo,
+          dni: usuario.dni // Añadimos el DNI al token por si es útil
         }
       };
 
-      // Firmar el token JWT
       jwt.sign(
         payload,
         process.env.JWT_SECRET,
-        { expiresIn: '8h' }, // El token expirará en 8 horas
+        { expiresIn: '8h' },
         (error, token) => {
           if (error) throw error;
           res.json({ token });
         }
       );
-
     } catch (error) {
       console.error('Error en el login:', error);
       res.status(500).json({ mensaje: 'Error interno del servidor al iniciar sesión.' });

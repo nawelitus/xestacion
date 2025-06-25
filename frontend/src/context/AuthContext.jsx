@@ -1,5 +1,5 @@
 import React, { createContext, useState, useEffect } from 'react';
-import { jwtDecode } from 'jwt-decode'; // Importamos jwt-decode
+import { jwtDecode } from 'jwt-decode';
 import api from '../services/api';
 
 const AuthContext = createContext();
@@ -22,8 +22,9 @@ export const AuthProvider = ({ children }) => {
     setCargando(false);
   }, []);
 
-  const login = async (email, password) => {
-    const respuesta = await api.post('/auth/login', { email, password });
+  // CAMBIO: La función de login ahora acepta `dni`
+  const login = async (dni, password) => {
+    const respuesta = await api.post('/auth/login', { dni, password });
     const { token } = respuesta.data;
     localStorage.setItem('token', token);
     const usuarioDecodificado = jwtDecode(token);
