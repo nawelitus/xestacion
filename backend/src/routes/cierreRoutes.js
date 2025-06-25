@@ -1,4 +1,4 @@
-// Contenido CORRECTO para: src/routes/cierreRoutes.js
+// Contenido COMPLETO y ACTUALIZADO para: src/routes/cierreRoutes.js
 
 import { Router } from 'express';
 import multer from 'multer';
@@ -23,7 +23,7 @@ const upload = multer({
 
 // @route   POST api/cierres/subir
 // @desc    Sube y procesa un archivo de cierre Z
-// @access  Privado (solo para roles específicos)
+// @access  Privado (administrador, editor)
 router.post(
   '/subir',
   [
@@ -32,6 +32,28 @@ router.post(
   ],
   upload.single('archivoCierre'), // 'archivoCierre' es el nombre del campo en el form-data
   CierreController.subirYCargarCierre
+);
+
+
+// @route   GET api/cierres/
+// @desc    Obtiene los cierres más recientes
+// @access  Privado (todos los roles autenticados)
+// @NUEVA RUTA
+router.get(
+    '/',
+    [
+        verificarToken,
+        autorizarRol(['administrador', 'editor', 'visualizador']) // Todos pueden ver
+    ],
+    CierreController.obtenerCierresRecientes
+);
+router.get(
+    '/:id', // La ruta ahora acepta un parámetro 'id'
+    [
+        verificarToken,
+        autorizarRol(['administrador', 'editor', 'visualizador'])
+    ],
+    CierreController.obtenerDetalleCierre
 );
 
 export default router;

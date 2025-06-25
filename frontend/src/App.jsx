@@ -1,29 +1,40 @@
-import React from 'react';
+// Contenido COMPLETO y CORREGIDO para: src/App.jsx
+
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
-import { AuthProvider } from './context/AuthContext';
-import Login from './pages/Login';
-import Dashboard from './pages/Dashboard';
 import Layout from './components/Layout';
 import RutaProtegida from './components/RutaProtegida';
+import Login from './pages/Login';
+import Dashboard from './pages/Dashboard';
+import CierreDetalle from './pages/CierreDetalle'; 
+import { AuthProvider } from './context/AuthContext';
 
 function App() {
   return (
-    <AuthProvider>
-      <BrowserRouter>
+    <BrowserRouter>
+      <AuthProvider>
         <Routes>
-          {/* Rutas Públicas */}
-          <Route path="/login" element={<Login />} />
+          {/* 1. RUTA PÚBLICA */}
+          <Route path="/" element={<Login />} />
 
-          {/* Rutas Privadas */}
+          {/* 2. GRUPO DE RUTAS PROTEGIDAS */}
+          {/* RutaProtegida ahora envuelve a Layout, que a su vez envuelve a las páginas */}
           <Route element={<RutaProtegida />}>
-            <Route element={<Layout />}>
-              <Route path="/" element={<Dashboard />} />
-              {/* Aquí irán las otras rutas privadas: /caja, /cta-cte, etc. */}
+            <Route path="/dashboard" element={<Layout />}>
+              {/* Esta ruta (index) se renderizará en el <Outlet/> de Layout cuando la URL sea exactamente "/dashboard" */}
+              <Route index element={<Dashboard />} />
+
+              {/* Esta ruta se renderizará en el <Outlet/> de Layout cuando la URL sea "/dashboard/cierres/:id" */}
+              <Route path="cierres/:id" element={<CierreDetalle />} />
+
+              {/* Aquí puedes añadir futuras rutas que compartan el mismo Layout */}
+              {/* <Route path="caja" element={<CajaDiaria />} /> */}
+              {/* <Route path="cuentas-corrientes" element={<CuentasCorrientes />} /> */}
             </Route>
           </Route>
+
         </Routes>
-      </BrowserRouter>
-    </AuthProvider>
+      </AuthProvider>
+    </BrowserRouter>
   );
 }
 

@@ -9,12 +9,13 @@ const Sidebar = () => {
 
   const handleLogout = () => {
     logout();
-    navigate('/login');
+    navigate('/');
   };
 
   const NavItem = ({ to, icon, children }) => (
     <NavLink
       to={to}
+      end 
       className={({ isActive }) =>
         `flex items-center px-4 py-2.5 rounded-lg text-sm font-medium transition-colors ${
           isActive
@@ -36,7 +37,7 @@ const Sidebar = () => {
         </h1>
       </div>
       <nav className="flex-1 px-4 py-6 space-y-2">
-        <NavItem to="/" icon={<LayoutDashboard size={20} />}>Dashboard</NavItem>
+        <NavItem to="/dashboard" icon={<LayoutDashboard size={20} />}>Dashboard</NavItem>
         <NavItem to="/caja" icon={<Droplet size={20} />}>Caja Diaria</NavItem>
         <NavItem to="/cuentas-corrientes" icon={<CreditCard size={20} />}>Cuentas Corrientes</NavItem>
         <NavItem to="/empleados" icon={<Users size={20} />}>Retiros</NavItem>

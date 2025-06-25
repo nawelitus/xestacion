@@ -17,7 +17,7 @@ const Login = () => {
     setIsLoading(true);
     try {
       await login(dni, password);
-      navigate('/');
+      navigate('/dashboard');
     } catch (err) {
       setError('DNI o Contraseña incorrectos.');
       setIsLoading(false);
