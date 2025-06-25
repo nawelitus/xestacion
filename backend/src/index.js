@@ -37,7 +37,7 @@ app.get('/api', (req, res) => {
 
 // Registrar rutas
 app.use('/api/auth', authRoutes);
-app.use('/api/cierres', cierreRoutes); // <-- AÑADIR ESTA LÍNEA
+app.use('/api/cierres', cierreRoutes); 
 
 
 // --- Iniciar Servidor ---
