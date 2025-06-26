@@ -7,6 +7,7 @@ import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
 import CierreDetalle from './pages/CierreDetalle'; 
 import { AuthProvider } from './context/AuthContext';
+import CajaDiaria from './pages/CajaDiaria';
 
 // --- AÑADIR IMPORTS DE LAS NUEVAS PÁGINAS ---
 import CuentasCorrientes from './pages/CuentasCorrientes';
@@ -29,6 +30,7 @@ function App() {
               {/* --- AÑADIR NUEVAS RUTAS DE CUENTAS CORRIENTES --- */}
               <Route path="cuentas-corrientes" element={<CuentasCorrientes />} />
               <Route path="cuentas-corrientes/:id" element={<ClienteDetalle />} />
+              <Route path="caja" element={<CajaDiaria />} />
 
             </Route>
           </Route>

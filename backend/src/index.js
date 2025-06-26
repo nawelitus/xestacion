@@ -11,7 +11,7 @@ import { probarConexion } from './config/db.js';
 import authRoutes from './routes/authRoutes.js';
 import cierreRoutes from './routes/cierreRoutes.js';
 import clienteRoutes from './routes/clienteRoutes.js'; // <-- AÑADIR ESTA LÍNEA
-
+import cajaDiariaRoutes from './routes/cajaDiariaRoutes.js';
 // --- Configuración Inicial ---
 const envFile = process.env.NODE_ENV === 'production' ? '.env.produccion' : '.env.desarrollo';
 dotenv.config({ path: `./${envFile}` });
@@ -39,7 +39,8 @@ app.get('/api', (req, res) => {
 app.use('/api/auth', authRoutes);
 app.use('/api/cierres', cierreRoutes); 
 app.use('/api/clientes', clienteRoutes); // <-- AÑADIR ESTA LÍNEA
-
+app.use('/api/retiros', retiroRoutes);
+app.use('/api/caja', cajaDiariaRoutes); 
 
 // --- Iniciar Servidor ---
 app.listen(PORT, () => {
