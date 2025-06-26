@@ -11,6 +11,8 @@ import { probarConexion } from './config/db.js';
 import authRoutes from './routes/authRoutes.js';
 import cierreRoutes from './routes/cierreRoutes.js';
 import clienteRoutes from './routes/clienteRoutes.js'; // <-- AÑADIR ESTA LÍNEA
+import retiroRoutes from './routes/retiroRoutes.js'; // <-- AÑADIR ESTA LÍNEA
+
 import cajaDiariaRoutes from './routes/cajaDiariaRoutes.js';
 // --- Configuración Inicial ---
 const envFile = process.env.NODE_ENV === 'production' ? '.env.produccion' : '.env.desarrollo';

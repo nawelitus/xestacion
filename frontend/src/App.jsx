@@ -8,6 +8,7 @@ import Dashboard from './pages/Dashboard';
 import CierreDetalle from './pages/CierreDetalle'; 
 import { AuthProvider } from './context/AuthContext';
 import CajaDiaria from './pages/CajaDiaria';
+import Retiros from './pages/Retiros';
 
 // --- AÑADIR IMPORTS DE LAS NUEVAS PÁGINAS ---
 import CuentasCorrientes from './pages/CuentasCorrientes';
@@ -31,6 +32,7 @@ function App() {
               <Route path="cuentas-corrientes" element={<CuentasCorrientes />} />
               <Route path="cuentas-corrientes/:id" element={<ClienteDetalle />} />
               <Route path="caja" element={<CajaDiaria />} />
+              <Route path="empleados" element={<Retiros />} />
 
             </Route>
           </Route>
