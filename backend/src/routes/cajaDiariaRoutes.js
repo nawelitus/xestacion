@@ -3,22 +3,26 @@ import CajaDiariaController from '../controllers/cajaDiariaController.js';
 import { verificarToken, autorizarRol } from '../middleware/authMiddleware.js';
 
 const router = Router();
-
-// Todas las rutas de caja diaria requieren autenticación
 router.use(verificarToken);
 
-// @route   GET api/caja/pendientes
-// @desc    Obtiene la lista de Cierres Z que no han sido procesados.
-// @access  Privado (todos los roles)
+// @route   GET api/caja/
+// @desc    Obtiene TODOS los Cierres Z (pendientes y procesados).
 router.get(
-  '/pendientes', 
+  '/', 
   autorizarRol(['administrador', 'editor', 'visualizador']), 
-  CajaDiariaController.obtenerCierresPendientes
+  CajaDiariaController.obtenerCierresParaCaja
+);
+
+// @route   GET api/caja/detalle/:cierreId
+// @desc    Obtiene el detalle de una caja diaria ya procesada.
+router.get(
+  '/detalle/:cierreId',
+  autorizarRol(['administrador', 'editor', 'visualizador']),
+  CajaDiariaController.obtenerDetalleProcesado
 );
 
 // @route   POST api/caja/procesar/:cierreId
-// @desc    Guarda los datos de la caja diaria para un cierre específico y lo marca como procesado.
-// @access  Privado (solo roles con permiso de escritura)
+// @desc    Guarda los datos de la caja diaria y marca el cierre como procesado.
 router.post(
   '/procesar/:cierreId', 
   autorizarRol(['administrador', 'editor']), 

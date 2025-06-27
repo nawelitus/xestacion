@@ -2,15 +2,35 @@ import CajaDiariaModel from '../models/cajaDiariaModel.js';
 
 const CajaDiariaController = {
   /**
-   * Obtiene la lista de Cierres Z pendientes de procesar.
+   * @MODIFICADO
+   * Obtiene la lista de TODOS los Cierres Z para la página de Caja Diaria.
    */
-  async obtenerCierresPendientes(req, res) {
+  async obtenerCierresParaCaja(req, res) {
     try {
-      const cierresPendientes = await CajaDiariaModel.listarPendientes();
-      res.status(200).json(cierresPendientes);
+      const todosLosCierres = await CajaDiariaModel.listarTodosParaCaja();
+      res.status(200).json(todosLosCierres);
     } catch (error) {
-      console.error('Error en el controlador al listar cierres pendientes:', error);
+      console.error('Error en controlador al listar cierres para caja:', error);
       res.status(500).json({ mensaje: 'Error interno del servidor.' });
+    }
+  },
+
+  /**
+   * @NUEVO
+   * Obtiene el detalle completo de una caja diaria ya procesada.
+   */
+  async obtenerDetalleProcesado(req, res) {
+    try {
+      const { cierreId } = req.params;
+      const detalle = await CajaDiariaModel.obtenerDetalleProcesado(cierreId);
+
+      if (!detalle) {
+        return res.status(404).json({ mensaje: 'No se encontraron datos para el cierre especificado.' });
+      }
+      res.status(200).json(detalle);
+    } catch (error) {
+      console.error('Error en controlador al obtener detalle procesado:', error);
+      res.status(500).json({ mensaje: 'Error interno del servidor al obtener el detalle.' });
     }
   },
 
@@ -21,7 +41,6 @@ const CajaDiariaController = {
     const { cierreId } = req.params;
     const datos = req.body;
 
-    // Validación básica de los datos recibidos
     if (!datos || !datos.billetera || !datos.creditos || !datos.retiros) {
         return res.status(400).json({ mensaje: 'Faltan datos en la petición.' });
     }

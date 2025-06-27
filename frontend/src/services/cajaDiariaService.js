@@ -1,24 +1,34 @@
 import api from './api';
 
 /**
- * @description Obtiene la lista de Cierres Z que están pendientes de procesar.
- * @returns {Promise<Array>} Un arreglo de objetos de cierres pendientes.
+ * Obtiene la lista completa de Cierres Z para la vista de Caja Diaria.
  */
-export const listarCierresPendientes = async () => {
+export const listarCierresParaCaja = async () => {
   try {
-    const { data } = await api.get('/caja/pendientes');
+    const { data } = await api.get('/caja'); // El endpoint ahora es la raíz
     return data;
   } catch (error) {
-    console.error("Error al listar cierres pendientes:", error);
+    console.error("Error al listar cierres para caja:", error);
     throw error;
   }
 };
 
 /**
- * @description Envía los datos del formulario de caja diaria para procesar un cierre.
- * @param {string|number} cierreId - El ID del cierre que se está procesando.
- * @param {Object} datosCaja - El objeto que contiene los datos de la billetera, créditos y retiros.
- * @returns {Promise<Object>} La respuesta de la API.
+ * @NUEVO
+ * Obtiene los detalles completos de una caja ya procesada.
+ */
+export const obtenerDetalleCajaProcesada = async (cierreId) => {
+  try {
+    const { data } = await api.get(`/caja/detalle/${cierreId}`);
+    return data;
+  } catch (error) {
+    console.error(`Error al obtener detalle de caja procesada para ${cierreId}:`, error);
+    throw error;
+  }
+};
+
+/**
+ * Envía los datos del formulario de caja diaria para procesar un cierre.
  */
 export const procesarCajaDiaria = async (cierreId, datosCaja) => {
   try {

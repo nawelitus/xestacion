@@ -23,7 +23,45 @@ const EmpleadoModel = {
   async listarTodos() {
     const [filas] = await pool.query('SELECT id, nombre_completo FROM empleados ORDER BY nombre_completo ASC');
     return filas;
+  },
+
+  async listarConResumenRetiros() {
+    const sql = `
+      SELECT
+          e.id,
+          e.nombre_completo,
+          COALESCE(SUM(rp.monto), 0) AS total_retirado
+      FROM
+          empleados e
+      LEFT JOIN
+          retiros_personal rp ON e.nombre_completo = rp.nombre_empleado
+      GROUP BY
+          e.id, e.nombre_completo
+      ORDER BY
+          e.nombre_completo ASC;
+    `;
+    const [filas] = await pool.query(sql);
+    return filas;
+  },
+
+  /**
+   * @MODIFICADO
+   * Obtiene una lista detallada de todos los retiros manuales de un empleado.
+   */
+  async obtenerDetalleRetirosPorNombre(nombreEmpleado) {
+    const sql = `
+      SELECT 
+          'Adelanto Manual' as origen, 
+          fecha_registro as fecha, 
+          monto, 
+          'Registrado en Caja Diaria' as concepto, 
+          cierre_z_id 
+      FROM retiros_personal 
+      WHERE nombre_empleado = ?
+      ORDER BY fecha DESC;
+    `;
+    const [filas] = await pool.query(sql, [nombreEmpleado]);
+    return filas;
   }
 };
-
 export default EmpleadoModel;

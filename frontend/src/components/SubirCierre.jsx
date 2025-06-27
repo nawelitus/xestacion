@@ -1,88 +1,78 @@
 import React, { useState, useCallback } from 'react';
 import { useDropzone } from 'react-dropzone';
-import api from '../services/api';
-import { UploadCloud, FileText, X, LoaderCircle } from 'lucide-react';
+import { subirCierre } from '../services/cierreService';
+import { UploadCloud, Loader, CheckCircle, AlertTriangle } from 'lucide-react';
 
-const SubirCierre = () => {
+const SubirCierre = ({ onUploadSuccess }) => {
   const [archivo, setArchivo] = useState(null);
-  const [mensaje, setMensaje] = useState({ tipo: '', texto: '' });
-  const [estaSubiendo, setEstaSubiendo] = useState(false);
+  const [estadoCarga, setEstadoCarga] = useState('inicial'); // 'inicial', 'cargando', 'exito', 'error'
+  const [mensaje, setMensaje] = useState('');
 
-  const onDrop = useCallback((archivosAceptados) => {
-    setMensaje({ tipo: '', texto: '' });
-    if (archivosAceptados.length > 0) {
-      setArchivo(archivosAceptados[0]);
+  const onDrop = useCallback(acceptedFiles => {
+    if (acceptedFiles.length > 0) {
+      setArchivo(acceptedFiles[0]);
+      setEstadoCarga('inicial'); // Resetea el estado si se selecciona un nuevo archivo
     }
   }, []);
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
     accept: { 'text/plain': ['.txt'] },
-    multiple: false,
+    maxFiles: 1
   });
 
-  const manejarSubida = async () => {
+  const handleSubir = async () => {
     if (!archivo) return;
-    setEstaSubiendo(true);
-    setMensaje({ tipo: '', texto: '' });
-    const formData = new FormData();
-    formData.append('archivoCierre', archivo);
+    setEstadoCarga('cargando');
+    setMensaje('');
 
     try {
-      const respuesta = await api.post('/cierres/subir', formData, {
-        headers: { 'Content-Type': 'multipart/form-data' },
-      });
-      setMensaje({ tipo: 'exito', texto: respuesta.data.mensaje });
-      setArchivo(null);
+      const respuesta = await subirCierre(archivo);
+      setEstadoCarga('exito');
+      setMensaje(respuesta.mensaje || 'Archivo procesado exitosamente.');
+      onUploadSuccess(); // Notifica al Dashboard para que refresque los datos
     } catch (error) {
-      const textoError = error.response?.data?.mensaje || 'Error al subir el archivo.';
-      setMensaje({ tipo: 'error', texto: textoError });
+      setEstadoCarga('error');
+      setMensaje(error.response?.data?.mensaje || 'Ocurrió un error al subir el archivo.');
     } finally {
-      setEstaSubiendo(false);
+      setArchivo(null); // Limpia el archivo seleccionado después del intento
     }
   };
-  
+
   return (
-    <div className="bg-primario p-6 rounded-lg border border-borde">
-      <h2 className="text-xl font-semibold text-texto-principal mb-4">Cargar Nuevo Cierre Z</h2>
-      
-      <div {...getRootProps()} className={`relative flex flex-col items-center justify-center w-full py-10 border-2 border-borde border-dashed rounded-lg cursor-pointer transition-all duration-300 ${isDragActive ? 'border-acento-1 bg-acento-1/10' : 'hover:border-acento-1/50'}`}>
-        <input {...getInputProps()} />
-        <div className="text-center">
-            <UploadCloud className={`mx-auto h-12 w-12 ${isDragActive ? 'text-acento-1' : 'text-texto-secundario'}`} />
-            <p className="mt-2 text-sm text-texto-secundario">
-              <span className="font-semibold text-acento-1">Hacé clic</span> o arrastrá un archivo .txt
-            </p>
+    <div className="bg-primario p-6 rounded-lg border border-borde h-full flex flex-col justify-between">
+      <div>
+        <h3 className="text-lg font-semibold mb-4">Procesar Nuevo Cierre Z</h3>
+        <div {...getRootProps()} className={`p-10 border-2 border-dashed rounded-lg cursor-pointer text-center transition-colors ${isDragActive ? 'border-blue-500 bg-blue-500/10' : 'border-borde hover:border-blue-500'}`}>
+          <input {...getInputProps()} />
+          <UploadCloud className="mx-auto text-texto-secundario mb-2" size={40} />
+          {archivo ? (
+            <p>Archivo: <span className="font-semibold text-blue-400">{archivo.name}</span></p>
+          ) : (
+            <p className="text-texto-secundario">Arrastra un archivo .txt aquí, o haz clic para seleccionarlo.</p>
+          )}
         </div>
       </div>
+      
+      <div className="mt-4">
+        {estadoCarga === 'cargando' && (
+          <div className="text-center flex items-center justify-center gap-2 text-blue-400"><Loader className="animate-spin" /> Procesando...</div>
+        )}
+        {estadoCarga === 'exito' && (
+           <div className="text-center flex items-center justify-center gap-2 text-green-400"><CheckCircle /> {mensaje}</div>
+        )}
+         {estadoCarga === 'error' && (
+           <div className="text-center flex items-center justify-center gap-2 text-red-400"><AlertTriangle /> {mensaje}</div>
+        )}
 
-      {archivo && (
-        <div className="mt-4 bg-borde/30 p-3 rounded-lg flex items-center justify-between animate-fade-in">
-          <div className="flex items-center gap-3">
-            <FileText className="h-5 w-5 text-texto-secundario" />
-            <span className="text-sm font-medium text-texto-principal truncate">{archivo.name}</span>
-          </div>
-          <button onClick={() => setArchivo(null)} className="text-texto-secundario hover:text-white" disabled={estaSubiendo}>
-            <X className="h-5 w-5" />
-          </button>
-        </div>
-      )}
-
-      <div className="mt-6">
-        <button
-          onClick={manejarSubida}
-          disabled={!archivo || estaSubiendo}
-          className="w-full flex justify-center items-center py-2.5 px-4 rounded-md shadow-sm font-medium text-white bg-gradient-to-r from-acento-1 to-acento-2 hover:from-acento-1/90 hover:to-acento-2/90 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-300"
+        <button 
+          onClick={handleSubir} 
+          disabled={!archivo || estadoCarga === 'cargando'} 
+          className="w-full mt-4 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-900 disabled:cursor-not-allowed text-white font-bold py-2.5 rounded-md flex items-center justify-center gap-2 transition-colors"
         >
-          {estaSubiendo ? <LoaderCircle className="animate-spin h-5 w-5" /> : 'Procesar Cierre'}
+          Procesar Archivo
         </button>
       </div>
-
-      {mensaje.texto && (
-        <div className={`mt-4 p-3 rounded-md text-sm font-medium animate-fade-in ${mensaje.tipo === 'exito' ? 'bg-green-500/10 text-green-400' : 'bg-red-500/10 text-red-400'}`}>
-          {mensaje.texto}
-        </div>
-      )}
     </div>
   );
 };

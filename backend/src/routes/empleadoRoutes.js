@@ -3,10 +3,15 @@ import EmpleadoController from '../controllers/empleadoController.js';
 import { verificarToken } from '../middleware/authMiddleware.js';
 
 const router = Router();
+router.use(verificarToken);
 
-// @route   GET api/empleados
-// @desc    Obtiene una lista de todos los empleados
-// @access  Privado (cualquier usuario autenticado)
-router.get('/', verificarToken, EmpleadoController.obtenerTodos);
+// Endpoint para obtener la lista de empleados (para los selectores)
+router.get('/', EmpleadoController.obtenerTodos);
+
+// @NUEVO: Endpoint para la página principal de retiros
+router.get('/resumen-retiros', EmpleadoController.obtenerResumenRetiros);
+
+// @NUEVO: Endpoint para el detalle de retiros de un empleado
+router.get('/detalle-retiros/:nombre', EmpleadoController.obtenerDetalleRetiros);
 
 export default router;
