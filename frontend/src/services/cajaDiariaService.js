@@ -1,18 +1,31 @@
 import api from './api';
 
 /**
- * @description Obtiene el resumen de caja consolidado para una fecha específica.
- * @param {string} fecha - La fecha en formato YYYY-MM-DD.
- * @returns {Promise<Object>} La respuesta completa de la API, incluyendo el objeto de datos.
+ * @description Obtiene la lista de Cierres Z que están pendientes de procesar.
+ * @returns {Promise<Array>} Un arreglo de objetos de cierres pendientes.
  */
-export const obtenerResumenCaja = async (fecha) => {
+export const listarCierresPendientes = async () => {
   try {
-    // La fecha se pasa como un query param en la URL
-    const { data } = await api.get(`/caja?fecha=${fecha}`);
+    const { data } = await api.get('/caja/pendientes');
     return data;
   } catch (error) {
-    console.error(`Error al obtener el resumen de caja para la fecha ${fecha}:`, error);
-    // Relanzamos el error para que el componente que llama pueda manejarlo.
+    console.error("Error al listar cierres pendientes:", error);
+    throw error;
+  }
+};
+
+/**
+ * @description Envía los datos del formulario de caja diaria para procesar un cierre.
+ * @param {string|number} cierreId - El ID del cierre que se está procesando.
+ * @param {Object} datosCaja - El objeto que contiene los datos de la billetera, créditos y retiros.
+ * @returns {Promise<Object>} La respuesta de la API.
+ */
+export const procesarCajaDiaria = async (cierreId, datosCaja) => {
+  try {
+    const { data } = await api.post(`/caja/procesar/${cierreId}`, datosCaja);
+    return data;
+  } catch (error) {
+    console.error(`Error al procesar la caja del cierre ${cierreId}:`, error);
     throw error;
   }
 };

@@ -7,14 +7,22 @@ const router = Router();
 // Todas las rutas de caja diaria requieren autenticación
 router.use(verificarToken);
 
-// @route   GET api/caja
-// @desc    Obtiene un resumen consolidado de todos los cierres para una fecha.
-// @access  Privado (administrador, editor, visualizador)
-// @query   ?fecha=YYYY-MM-DD (Opcional, si no se envía toma la fecha actual)
+// @route   GET api/caja/pendientes
+// @desc    Obtiene la lista de Cierres Z que no han sido procesados.
+// @access  Privado (todos los roles)
 router.get(
-  '/', 
+  '/pendientes', 
   autorizarRol(['administrador', 'editor', 'visualizador']), 
-  CajaDiariaController.obtenerCajaDelDia
+  CajaDiariaController.obtenerCierresPendientes
+);
+
+// @route   POST api/caja/procesar/:cierreId
+// @desc    Guarda los datos de la caja diaria para un cierre específico y lo marca como procesado.
+// @access  Privado (solo roles con permiso de escritura)
+router.post(
+  '/procesar/:cierreId', 
+  autorizarRol(['administrador', 'editor']), 
+  CajaDiariaController.procesarCierreDiario
 );
 
 export default router;

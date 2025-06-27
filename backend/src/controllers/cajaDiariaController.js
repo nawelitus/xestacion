@@ -1,56 +1,37 @@
 import CajaDiariaModel from '../models/cajaDiariaModel.js';
 
-/**
- * Formatea un objeto Date a un string YYYY-MM-DD en la zona horaria de Argentina.
- * @param {Date} date - El objeto Date a formatear.
- * @returns {string} La fecha en formato YYYY-MM-DD.
- */
-const formatearFechaA_YYYY_MM_DD = (date) => {
-    // Usamos toLocaleString para obtener la fecha correcta en Argentina
-    // y luego la reordenamos al formato estándar YYYY-MM-DD.
-    const [dia, mes, anio] = date.toLocaleString('es-AR', {
-        timeZone: 'America/Argentina/Buenos_Aires',
-        year: 'numeric',
-        month: '2-digit',
-        day: '2-digit'
-    }).split('/');
-    return `${anio}-${mes}-${dia}`;
-}
-
-
 const CajaDiariaController = {
   /**
-   * Obtiene el resumen consolidado de la caja para una fecha dada.
-   * Si no se provee fecha, utiliza la fecha actual de Argentina.
+   * Obtiene la lista de Cierres Z pendientes de procesar.
    */
-  async obtenerCajaDelDia(req, res) {
+  async obtenerCierresPendientes(req, res) {
     try {
-      // Si el cliente envía una fecha en la query (?fecha=YYYY-MM-DD), la usamos.
-      // Si no, usamos la fecha actual de Argentina como valor por defecto.
-      const fecha = req.query.fecha || formatearFechaA_YYYY_MM_DD(new Date());
-
-      const resumenDelDia = await CajaDiariaModel.obtenerResumenPorFecha(fecha);
-
-      if (!resumenDelDia) {
-        return res.status(200).json({ 
-            mensaje: `No se encontraron cierres para la fecha ${fecha}.`,
-            data: {
-                fecha_consulta: fecha,
-                resumen: {
-                    cantidad_cierres: 0
-                }
-            }
-         });
-      }
-
-      res.status(200).json({
-          mensaje: `Resumen para la fecha ${fecha} obtenido exitosamente.`,
-          data: resumenDelDia
-      });
-
+      const cierresPendientes = await CajaDiariaModel.listarPendientes();
+      res.status(200).json(cierresPendientes);
     } catch (error) {
-      console.error('Error en el controlador de Caja Diaria:', error);
-      res.status(500).json({ mensaje: 'Error interno del servidor al obtener el resumen diario.', detalle: error.message });
+      console.error('Error en el controlador al listar cierres pendientes:', error);
+      res.status(500).json({ mensaje: 'Error interno del servidor.' });
+    }
+  },
+
+  /**
+   * Recibe los datos del modal y los manda al modelo para ser procesados.
+   */
+  async procesarCierreDiario(req, res) {
+    const { cierreId } = req.params;
+    const datos = req.body;
+
+    // Validación básica de los datos recibidos
+    if (!datos || !datos.billetera || !datos.creditos || !datos.retiros) {
+        return res.status(400).json({ mensaje: 'Faltan datos en la petición.' });
+    }
+    
+    try {
+      await CajaDiariaModel.procesarCaja(cierreId, datos);
+      res.status(200).json({ mensaje: `El cierre ha sido procesado exitosamente.` });
+    } catch (error) {
+      console.error(`Error al procesar cierre diario para el ID ${cierreId}:`, error);
+      res.status(500).json({ mensaje: 'Error interno del servidor al procesar el cierre.' });
     }
   }
 };

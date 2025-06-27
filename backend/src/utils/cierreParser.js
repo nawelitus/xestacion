@@ -1,5 +1,6 @@
 // ================================================================
-// ARCHIVO: src/utils/cierreParser.js (VERSIÓN CORREGIDA Y MEJORADA)
+// ARCHIVO: src/utils/cierreParser.js (VERSIÓN CORREGIDA)
+// Se añade una validación para omitir la línea "TOTAL" en las ventas de combustible.
 // ================================================================
 
 const parsearNumero = (str) => {
@@ -30,9 +31,6 @@ export const parsearCierreZ = (textoCrudo) => {
     for (let i = 0; i < lineas.length; i++) {
         const linea = lineas[i].trim();
 
-        // ======================= LÓGICA CORREGIDA =======================
-        // Se revisa si la línea es un total DE SECCIÓN antes de cambiar de sección.
-        // La expresión regular busca una línea que empiece con "TOTAL" y termine en un número.
         if (linea.match(/^TOTAL\s+[\d.,]+$/)) {
             const montoTotal = parsearNumero(linea.match(/[\d.,]+$/)[0]);
             switch (seccionActual) {
@@ -50,7 +48,6 @@ export const parsearCierreZ = (textoCrudo) => {
                     break;
             }
         }
-        // ===================== FIN DE LA CORRECCIÓN ======================
 
         if (linea.startsWith('=====')) {
             if (linea.includes('TOTALES POR PRODUCTO')) seccionActual = 'VENTAS_COMBUSTIBLE';
@@ -88,15 +85,43 @@ export const parsearCierreZ = (textoCrudo) => {
         switch (seccionActual) {
             case 'VENTAS_COMBUSTIBLE':
                 const matchComb = linea.match(/^(\S+)\s+([\d.,]+)\s+([\d.,]+)$/);
-                if (matchComb) resultado.ventasCombustible.push({ producto: matchComb[1], litros: parsearNumero(matchComb[2]), importe: parsearNumero(matchComb[3]) });
+                if (matchComb) {
+                    const productoNombre = matchComb[1];
+                    // ======================= CAMBIO AQUÍ =======================
+                    // Si el nombre del producto es 'TOTAL', ignora esta línea y no la guarda.
+                    if (productoNombre.toUpperCase() !== 'TOTAL') {
+                        resultado.ventasCombustible.push({
+                            producto: productoNombre,
+                            litros: parsearNumero(matchComb[2]),
+                            importe: parsearNumero(matchComb[3]),
+                        });
+                    }
+                    // ===================== FIN DEL CAMBIO ======================
+                }
                 break;
             case 'VENTAS_SHOP':
+                // Se aplica la misma lógica para las ventas del shop por si acaso
                 const matchShop = linea.match(/^\s*(\d+)\s+(.+?)\s{2,}([\d.,]+)$/);
-                if (matchShop) resultado.ventasShop.push({ cantidad: parseInt(matchShop[1], 10), producto: matchShop[2].trim(), importe: parsearNumero(matchShop[3]) });
+                 if (matchShop) {
+                    const productoNombre = matchShop[2].trim();
+                    if (productoNombre.toUpperCase() !== 'TOTAL') {
+                        resultado.ventasShop.push({
+                            cantidad: parseInt(matchShop[1], 10),
+                            producto: productoNombre,
+                            importe: parsearNumero(matchShop[3]),
+                        });
+                    }
+                }
                 break;
             case 'REMITOS':
-                const matchRemito = linea.match(/^(\S+-\S+)\s+(.+?)\s{2,}([\d.,]+)$/);
-                if (matchRemito) resultado.remitos.push({ comprobante: matchRemito[1], cliente_nombre: matchRemito[2].trim(), monto: parsearNumero(matchRemito[3]) });
+                 const matchRemito = linea.match(/^(\S+-\S+)\s+(.+?)\s{2,}([\d.,]+)$/);
+                 if (matchRemito) {
+                    resultado.remitos.push({
+                        comprobante: matchRemito[1],
+                        cliente_nombre: matchRemito[2].trim(),
+                        monto: parsearNumero(matchRemito[3]),
+                    });
+                }
                 break;
             case 'GASTOS':
             case 'TIRADAS':
@@ -115,7 +140,10 @@ export const parsearCierreZ = (textoCrudo) => {
             case 'AXION_ON':
                 const matchPago = linea.match(/(.*?)\s{2,}([\d.,]+)$/);
                 if (matchPago) {
-                    resultado.movimientosCaja.push({ tipo: seccionActual, comprobante: null, descripcion: matchPago[1].trim() || 'Sin descripción', monto: parsearNumero(matchPago[2]) });
+                    // Ignorar la línea del total también en estas secciones
+                    if (matchPago[1].trim().toUpperCase() !== 'TOTAL') {
+                        resultado.movimientosCaja.push({ tipo: seccionActual, comprobante: null, descripcion: matchPago[1].trim() || 'Sin descripción', monto: parsearNumero(matchPago[2]) });
+                    }
                 } else if (linea.match(/^[\d.,]+$/)) {
                     resultado.movimientosCaja.push({ tipo: seccionActual, comprobante: null, descripcion: 'Sin descripción', monto: parsearNumero(linea) });
                 }

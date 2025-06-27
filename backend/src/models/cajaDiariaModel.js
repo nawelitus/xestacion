@@ -2,75 +2,75 @@ import pool from '../config/db.js';
 
 const CajaDiariaModel = {
   /**
-   * Obtiene un resumen consolidado de todos los cierres y sus detalles para una fecha específica.
-   * @param {string} fecha - La fecha para la cual se generará el resumen (formato YYYY-MM-DD).
-   * @returns {Promise<object|null>} Un objeto con los datos consolidados del día.
+   * Lista todos los Cierres Z que aún no han sido procesados en la Caja Diaria.
+   * @returns {Promise<Array>} Un arreglo de cierres pendientes.
    */
-  async obtenerResumenPorFecha(fecha) {
-    // Primero, obtenemos los IDs de todos los cierres para la fecha dada.
-    const [cierresDelDia] = await pool.query('SELECT id FROM cierres_z WHERE fecha_turno = ?', [fecha]);
+  async listarPendientes() {
+    const [filas] = await pool.query(
+      `SELECT id, numero_z, fecha_turno, total_a_rendir 
+       FROM cierres_z 
+       WHERE caja_procesada = 0 
+       ORDER BY fecha_turno DESC, id DESC`
+    );
+    return filas;
+  },
 
-    // Si no hubo cierres en esa fecha, retornamos null para que el controlador lo maneje.
-    if (cierresDelDia.length === 0) {
-      return null;
-    }
-
-    // Extraemos los IDs en un array para usarlos en las cláusulas IN (...)
-    const idsDeCierres = cierresDelDia.map(c => c.id);
-
-    // Ejecutamos todas las consultas de agregación y detalle en paralelo para máxima eficiencia.
+  /**
+   * Procesa y guarda todos los datos de la caja diaria para un Cierre Z específico.
+   * Ejecuta múltiples inserciones dentro de una transacción para garantizar la integridad.
+   * @param {number} cierreId - El ID del Cierre Z que se está procesando.
+   * @param {object} datos - El objeto con todos los datos del formulario del modal.
+   * @returns {Promise<void>}
+   */
+  async procesarCaja(cierreId, datos) {
+    const connection = await pool.getConnection();
     try {
-      const [
-        resumenAgregado,
-        ventasCombustible,
-        ventasShop,
-        movimientosCaja,
-        remitos
-      ] = await Promise.all([
-        // 1. Resumen de totales agregados (SUM)
-        pool.query(`
-          SELECT
-            COALESCE(SUM(total_bruto), 0) AS total_bruto_dia,
-            COALESCE(SUM(total_remitos), 0) AS total_remitos_dia,
-            COALESCE(SUM(total_gastos), 0) AS total_gastos_dia,
-            COALESCE(SUM(total_a_rendir), 0) AS total_a_rendir_dia,
-            COUNT(id) AS cantidad_cierres
-          FROM cierres_z
-          WHERE id IN (?)
-        `, [idsDeCierres]),
+      await connection.beginTransaction();
 
-        // 2. Detalle de ventas de combustible de todos los cierres del día
-        pool.query('SELECT * FROM ventas_combustible_z WHERE cierre_z_id IN (?) ORDER BY producto_nombre', [idsDeCierres]),
+      // 1. Insertar los datos de la billetera
+      const { billetera, creditos, retiros } = datos;
+      await connection.query(
+        'INSERT INTO caja_diaria_billetera (cierre_z_id, dinero_recibido, dinero_entregado) VALUES (?, ?, ?)',
+        [cierreId, billetera.recibido, billetera.entregado]
+      );
 
-        // 3. Detalle de ventas del shop
-        pool.query('SELECT * FROM ventas_shop_z WHERE cierre_z_id IN (?) ORDER BY producto_nombre', [idsDeCierres]),
-        
-        // 4. Detalle de todos los movimientos de caja (gastos, tiradas, etc.)
-        pool.query('SELECT * FROM movimientos_caja_z WHERE cierre_z_id IN (?) ORDER BY tipo, descripcion', [idsDeCierres]),
+      // 2. Insertar los créditos (solo los que tengan un importe)
+      const creditosAInsertar = creditos
+        .filter(c => c.importe > 0)
+        .map(c => [cierreId, c.item, c.importe]);
+      
+      if (creditosAInsertar.length > 0) {
+        await connection.query(
+          'INSERT INTO caja_diaria_creditos (cierre_z_id, item, importe) VALUES ?',
+          [creditosAInsertar]
+        );
+      }
+      
+      // 3. Insertar los retiros de personal
+      const retirosAInsertar = retiros.map(r => [cierreId, r.nombre, r.monto]);
+      if (retirosAInsertar.length > 0) {
+        await connection.query(
+          'INSERT INTO retiros_personal (cierre_z_id, nombre_empleado, monto) VALUES ?',
+          [retirosAInsertar]
+        );
+      }
 
-        // 5. Detalle de todos los remitos, incluyendo el nombre del cliente
-        pool.query(`
-          SELECT m.*, c.nombre AS cliente_nombre
-          FROM movimientos_cta_cte m
-          JOIN clientes c ON m.cliente_id = c.id
-          WHERE m.cierre_z_id IN (?)
-          ORDER BY c.nombre
-        `, [idsDeCierres])
-      ]);
+      // 4. Marcar el Cierre Z como procesado
+      await connection.query(
+        'UPDATE cierres_z SET caja_procesada = 1 WHERE id = ?',
+        [cierreId]
+      );
 
-      // Estructuramos la respuesta final en un único objeto
-      return {
-        fecha_consulta: fecha,
-        resumen: resumenAgregado[0][0], // El resultado de la consulta de agregación
-        ventasCombustible: ventasCombustible[0],
-        ventasShop: ventasShop[0],
-        movimientosCaja: movimientosCaja[0],
-        remitos: remitos[0]
-      };
-
+      // Si todo fue exitoso, confirma la transacción
+      await connection.commit();
     } catch (error) {
-      console.error(`Error al obtener resumen de caja diaria para la fecha ${fecha}:`, error);
-      throw new Error('Error al consultar el resumen diario en la base de datos.');
+      // Si algo falla, revierte todos los cambios
+      await connection.rollback();
+      console.error(`Error en la transacción al procesar caja para el cierre ${cierreId}:`, error);
+      throw new Error('Error en la base de datos al procesar la caja diaria.');
+    } finally {
+      // Libera la conexión al pool
+      connection.release();
     }
   }
 };
