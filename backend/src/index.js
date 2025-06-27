@@ -12,6 +12,7 @@ import authRoutes from './routes/authRoutes.js';
 import cierreRoutes from './routes/cierreRoutes.js';
 import clienteRoutes from './routes/clienteRoutes.js'; // <-- AÑADIR ESTA LÍNEA
 import retiroRoutes from './routes/retiroRoutes.js'; // <-- AÑADIR ESTA LÍNEA
+import empleadoRoutes from './routes/empleadoRoutes.js'; // <-- AÑADIR IMPORT
 
 import cajaDiariaRoutes from './routes/cajaDiariaRoutes.js';
 // --- Configuración Inicial ---
@@ -43,7 +44,7 @@ app.use('/api/cierres', cierreRoutes);
 app.use('/api/clientes', clienteRoutes); // <-- AÑADIR ESTA LÍNEA
 app.use('/api/retiros', retiroRoutes);
 app.use('/api/caja', cajaDiariaRoutes); 
-
+app.use('/api/empleados', empleadoRoutes);
 // --- Iniciar Servidor ---
 app.listen(PORT, () => {
   console.log(`🚀 Servidor corriendo en el puerto ${PORT}`);

@@ -2,6 +2,7 @@
 
 import { parsearCierreZ } from '../utils/cierreParser.js';
 import CierreModel from '../models/cierreModel.js';
+import EmpleadoModel from '../models/empleadoModel.js'; // <-- AÑADIR IMPORT
 
 const CierreController = {
   /**
@@ -15,7 +16,8 @@ const CierreController = {
     try {
       const contenidoArchivo = req.file.buffer.toString('utf-8');
       const datosParseados = parsearCierreZ(contenidoArchivo);
-      
+            await EmpleadoModel.guardarNuevos(datosParseados.empleados);
+
       datosParseados.cabecera.usuario_carga_id = req.usuario.id;
 
       // Llamar al modelo para que se encargue de la lógica de la base de datos

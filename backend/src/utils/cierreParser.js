@@ -1,6 +1,6 @@
 // ================================================================
-// ARCHIVO: src/utils/cierreParser.js (VERSIÓN CORREGIDA)
-// Se añade una validación para omitir la línea "TOTAL" en las ventas de combustible.
+// ARCHIVO: src/utils/cierreParser.js (VERSIÓN CORREGIDA FINAL)
+// Se asegura de capturar la lista de empleados del Cierre Z.
 // ================================================================
 
 const parsearNumero = (str) => {
@@ -19,6 +19,7 @@ export const parsearCierreZ = (textoCrudo) => {
             total_tiradas: 0,
             total_axion_on: 0
         },
+        empleados: [], // Array para almacenar los nombres de los empleados
         ventasCombustible: [],
         ventasShop: [],
         remitos: [],
@@ -27,9 +28,28 @@ export const parsearCierreZ = (textoCrudo) => {
     };
 
     let seccionActual = '';
+    let capturandoEmpleados = false; // Flag para saber si estamos en la sección de empleados
 
     for (let i = 0; i < lineas.length; i++) {
         const linea = lineas[i].trim();
+
+        // ======================= LÓGICA PARA CAPTURAR EMPLEADOS =======================
+        // Detecta la línea "Empleados:" y activa el modo de captura.
+        if (linea.startsWith('Empleados:')) {
+            capturandoEmpleados = true;
+            continue; // Salta a la siguiente línea para no procesar "Empleados:"
+        }
+
+        // Si el modo de captura está activo, procesa las líneas.
+        if (capturandoEmpleados) {
+            // Si encuentra la línea de separación, desactiva el modo de captura.
+            if (linea.startsWith('=====')) {
+                capturandoEmpleados = false;
+            } else if (linea) { // Si la línea no está vacía, la añade al array.
+                resultado.empleados.push(linea);
+            }
+        }
+        // ===================== FIN DE LA LÓGICA DE EMPLEADOS ======================
 
         if (linea.match(/^TOTAL\s+[\d.,]+$/)) {
             const montoTotal = parsearNumero(linea.match(/[\d.,]+$/)[0]);
@@ -87,40 +107,24 @@ export const parsearCierreZ = (textoCrudo) => {
                 const matchComb = linea.match(/^(\S+)\s+([\d.,]+)\s+([\d.,]+)$/);
                 if (matchComb) {
                     const productoNombre = matchComb[1];
-                    // ======================= CAMBIO AQUÍ =======================
-                    // Si el nombre del producto es 'TOTAL', ignora esta línea y no la guarda.
                     if (productoNombre.toUpperCase() !== 'TOTAL') {
-                        resultado.ventasCombustible.push({
-                            producto: productoNombre,
-                            litros: parsearNumero(matchComb[2]),
-                            importe: parsearNumero(matchComb[3]),
-                        });
+                        resultado.ventasCombustible.push({ producto: productoNombre, litros: parsearNumero(matchComb[2]), importe: parsearNumero(matchComb[3]) });
                     }
-                    // ===================== FIN DEL CAMBIO ======================
                 }
                 break;
             case 'VENTAS_SHOP':
-                // Se aplica la misma lógica para las ventas del shop por si acaso
                 const matchShop = linea.match(/^\s*(\d+)\s+(.+?)\s{2,}([\d.,]+)$/);
                  if (matchShop) {
                     const productoNombre = matchShop[2].trim();
                     if (productoNombre.toUpperCase() !== 'TOTAL') {
-                        resultado.ventasShop.push({
-                            cantidad: parseInt(matchShop[1], 10),
-                            producto: productoNombre,
-                            importe: parsearNumero(matchShop[3]),
-                        });
+                        resultado.ventasShop.push({ cantidad: parseInt(matchShop[1], 10), producto: productoNombre, importe: parsearNumero(matchShop[3]) });
                     }
                 }
                 break;
             case 'REMITOS':
                  const matchRemito = linea.match(/^(\S+-\S+)\s+(.+?)\s{2,}([\d.,]+)$/);
                  if (matchRemito) {
-                    resultado.remitos.push({
-                        comprobante: matchRemito[1],
-                        cliente_nombre: matchRemito[2].trim(),
-                        monto: parsearNumero(matchRemito[3]),
-                    });
+                    resultado.remitos.push({ comprobante: matchRemito[1], cliente_nombre: matchRemito[2].trim(), monto: parsearNumero(matchRemito[3]) });
                 }
                 break;
             case 'GASTOS':
@@ -140,7 +144,6 @@ export const parsearCierreZ = (textoCrudo) => {
             case 'AXION_ON':
                 const matchPago = linea.match(/(.*?)\s{2,}([\d.,]+)$/);
                 if (matchPago) {
-                    // Ignorar la línea del total también en estas secciones
                     if (matchPago[1].trim().toUpperCase() !== 'TOTAL') {
                         resultado.movimientosCaja.push({ tipo: seccionActual, comprobante: null, descripcion: matchPago[1].trim() || 'Sin descripción', monto: parsearNumero(matchPago[2]) });
                     }
