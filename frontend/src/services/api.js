@@ -1,10 +1,12 @@
 import axios from 'axios';
 
-const api = axios.create({
-  baseURL: 'http://localhost:4000/api', // La URL base de nuestro backend
-});
+const baseURL = import.meta.env.PROD
+  ? '/api'  
+  : 'http://localhost:4000/api'; 
 
-// Interceptor para añadir el token a todas las peticiones
+const api = axios.create({ baseURL });
+
+// Interceptor para añadir token
 api.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem('token');
@@ -13,9 +15,7 @@ api.interceptors.request.use(
     }
     return config;
   },
-  (error) => {
-    return Promise.reject(error);
-  }
+  (error) => Promise.reject(error)
 );
 
 export default api;
