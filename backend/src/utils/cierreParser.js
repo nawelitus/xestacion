@@ -1,10 +1,15 @@
 // ================================================================
-// ARCHIVO: src/utils/cierreParser.js (VERSIÓN CORREGIDA FINAL)
-// Se asegura de capturar la lista de empleados del Cierre Z.
+// ARCHIVO: src/utils/cierreParser.js (Versión Corregida)
+//
+// CAMBIO REALIZADO:
+// Se inicializaron todos los totales numéricos del `resumenCaja` en 0.
+// Esto previene el error "cannot be null" si el archivo .txt no
+// contiene una línea para alguno de estos valores (como "FALTANTE").
 // ================================================================
 
 const parsearNumero = (str) => {
   if (typeof str !== 'string') return 0;
+  // Elimina los separadores de miles (comas) antes de convertir a número
   const stringLimpio = str.replace(/,/g, '');
   return parseFloat(stringLimpio) || 0;
 };
@@ -13,13 +18,19 @@ export const parsearCierreZ = (textoCrudo) => {
     const lineas = textoCrudo.split(/\r?\n/);
     const resultado = {
         cabecera: {},
+        // FIX: Inicializar todos los totales en 0 para evitar errores de NULL
         resumenCaja: {
+            total_bruto: 0,
+            total_remitos: 0,
+            total_gastos: 0,
+            total_a_rendir: 0,
+            total_faltante: 0, // <-- El campo que causaba el error ahora se inicializa
             total_cupones: 0,
             total_mercadopago: 0,
             total_tiradas: 0,
             total_axion_on: 0
         },
-        empleados: [], // Array para almacenar los nombres de los empleados
+        empleados: [],
         ventasCombustible: [],
         ventasShop: [],
         remitos: [],
@@ -28,29 +39,24 @@ export const parsearCierreZ = (textoCrudo) => {
     };
 
     let seccionActual = '';
-    let capturandoEmpleados = false; // Flag para saber si estamos en la sección de empleados
+    let capturandoEmpleados = false;
 
     for (let i = 0; i < lineas.length; i++) {
         const linea = lineas[i].trim();
 
-        // ======================= LÓGICA PARA CAPTURAR EMPLEADOS =======================
-        // Detecta la línea "Empleados:" y activa el modo de captura.
         if (linea.startsWith('Empleados:')) {
             capturandoEmpleados = true;
-            continue; // Salta a la siguiente línea para no procesar "Empleados:"
+            continue;
         }
 
-        // Si el modo de captura está activo, procesa las líneas.
         if (capturandoEmpleados) {
-            // Si encuentra la línea de separación, desactiva el modo de captura.
             if (linea.startsWith('=====')) {
                 capturandoEmpleados = false;
-            } else if (linea) { // Si la línea no está vacía, la añade al array.
+            } else if (linea) {
                 resultado.empleados.push(linea);
             }
         }
-        // ===================== FIN DE LA LÓGICA DE EMPLEADOS ======================
-
+        
         if (linea.match(/^TOTAL\s+[\d.,]+$/)) {
             const montoTotal = parsearNumero(linea.match(/[\d.,]+$/)[0]);
             switch (seccionActual) {

@@ -3,6 +3,22 @@ import { procesarCajaDiaria } from '../services/cajaDiariaService';
 import { obtenerTodosLosEmpleados } from '../services/empleadoService';
 import { X, Loader, Users, Banknote, Landmark, PlusCircle, Trash2 } from 'lucide-react';
 
+// ================================================================
+// Componente ModalCajaDiaria.jsx (Versión con Legibilidad Corregida)
+//
+// CAMBIO REALIZADO:
+// Se ajustaron los estilos del elemento <select> en la tabla de
+// "Créditos y Vales" para solucionar el problema de legibilidad
+// que se mostraba en la imagen.
+//
+// 1.  Se cambió `bg-secundario` por `bg-fondo` para que coincida con
+//     los otros inputs.
+// 2.  Se añadió la clase `appearance-none` para eliminar el estilo
+//     nativo del navegador y permitir la personalización del fondo.
+// 3.  Se agregó `border border-borde` para una apariencia consistente.
+// ================================================================
+
+
 const formatearMoneda = (monto) => new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS' }).format(monto || 0);
 
 const OPCIONES_CREDITO = ["TICKET CARD", "POSTNET INALAMBRICO 77", "POSTNET INALAMBRICO 51", "CREDITO PERSONAL"];
@@ -31,11 +47,16 @@ const FilaCredito = ({ item, indice, actualizarCredito }) => {
             value={item.item}
             onChange={(e) => actualizarCredito(indice, 'item', e.target.value)}
             onBlur={() => { if(item.item) setEditandoItem(false) }}
-            className="w-full bg-fondo p-1 rounded-md outline-none focus:ring-1 focus:ring-blue-500 text-texto-principal border border-borde"
+            className="w-full bg-fondo p-1.5 rounded-md outline-none focus:ring-1 focus:ring-blue-500 text-texto-principal border border-borde"
             autoFocus
           />
         ) : (
-          <select value={esOpcionPredefinida ? item.item : 'OTRO'} onChange={handleSelectChange} className="w-full bg-secundario p-1 rounded-md text-texto-principal border-transparent focus:ring-1 focus:ring-blue-500 outline-none">
+          // --- ESTA ES LA LÍNEA MODIFICADA ---
+          <select 
+            value={esOpcionPredefinida ? item.item : 'OTRO'} 
+            onChange={handleSelectChange} 
+            className="w-full bg-fondo p-1.5 rounded-md text-texto-principal border border-borde focus:ring-1 focus:ring-blue-500 outline-none appearance-none"
+          >
             <option value="" disabled>Seleccionar...</option>
             {OPCIONES_CREDITO.map(op => <option key={op} value={op}>{op}</option>)}
             <option value="OTRO">{esOpcionPredefinida ? 'Otro (especificar)' : item.item || 'Otro (especificar)'}</option>
@@ -48,7 +69,7 @@ const FilaCredito = ({ item, indice, actualizarCredito }) => {
           value={item.importe}
           onChange={(e) => actualizarCredito(indice, 'importe', e.target.value)}
           placeholder="0.00"
-          className="w-full bg-fondo p-1 rounded-md outline-none focus:ring-1 focus:ring-blue-500 text-right text-texto-principal border border-borde"
+          className="w-full bg-fondo p-1.5 rounded-md outline-none focus:ring-1 focus:ring-blue-500 text-right text-texto-principal border border-borde"
         />
       </td>
     </tr>
@@ -96,26 +117,17 @@ const ModalCajaDiaria = ({ cierre, alCerrar, alProcesarExito }) => {
     setRetiros(retiros.filter((_, i) => i !== indice));
   };
 
-  const { totalARendirFinal, totalDeclaradoFinal, diferenciaFinal } = useMemo(() => {
-    let totalRendir = Number(cierre.total_a_rendir) || 0;
+  const { totalDeclaradoFinal, diferenciaFinal } = useMemo(() => {
+    const totalARendir = Number(cierre.total_a_rendir) || 0;
     const totalCreditos = creditos.reduce((acc, c) => acc + (Number(c.importe) || 0), 0);
-    let totalDeclarado = totalCreditos;
     const dineroRecibido = Number(billetera.recibido) || 0;
     const dineroEntregado = Number(billetera.entregado) || 0;
-    const diferenciaBilletera = dineroEntregado - dineroRecibido;
-
-    if (diferenciaBilletera >= 0) {
-           totalDeclarado += Math.abs(diferenciaBilletera);
-
-    } else {
-      
-      totalDeclarado += -Math.abs(diferenciaBilletera);
-    }
     
-    const diferencia =   totalDeclarado - totalRendir;
+    const diferenciaBilletera = dineroEntregado - dineroRecibido;
+    const totalDeclarado = totalCreditos + diferenciaBilletera;
+    const diferencia = totalDeclarado - totalARendir;
 
     return { 
-        totalARendirFinal: totalRendir, 
         totalDeclaradoFinal: totalDeclarado,
         diferenciaFinal: diferencia 
     };
@@ -198,14 +210,13 @@ const ModalCajaDiaria = ({ cierre, alCerrar, alProcesarExito }) => {
 
         <div className="p-4 bg-secundario/50 mt-auto border-t border-borde">
            <div className="grid grid-cols-3 gap-4 text-center">
-                <div><p className="text-xs text-texto-secundario">Total a Rendir (Final)</p><p className="font-bold text-lg">{formatearMoneda(totalARendirFinal)}</p></div>
+                <div><p className="text-xs text-texto-secundario">Total a Rendir (Z)</p><p className="font-bold text-lg">{formatearMoneda(cierre.total_a_rendir)}</p></div>
                 <div><p className="text-xs text-texto-secundario">Total Declarado (Final)</p><p className="font-bold text-lg">{formatearMoneda(totalDeclaradoFinal)}</p></div>
-                <div><p className="text-xs text-texto-secundario">Diferencia</p>
-                    {/* ======================= LÓGICA DE COLOR CORREGIDA ======================= */}
+                <div>
+                    <p className="text-xs text-texto-secundario">Diferencia</p>
                     <p className={`font-bold text-lg ${diferenciaFinal < 0 ? 'text-red-400' : 'text-green-400'}`}>
                         {formatearMoneda(diferenciaFinal)}
                     </p>
-                    {/* ===================== FIN DE LA CORRECCIÓN ====================== */}
                 </div>
            </div>
            {error && <p className="text-red-500 text-center text-sm mt-2">{error}</p>}

@@ -55,17 +55,18 @@ const CajaDiariaModel = {
       const { billetera, creditos, retiros } = datos;
       const cierreOriginal = (await connection.query('SELECT total_a_rendir FROM cierres_z WHERE id = ?', [cierreId]))[0][0];
       
-      let totalRendir = Number(cierreOriginal.total_a_rendir) || 0;
+ // ======================= LÓGICA DE CÁLCULO SINCRONIZADA =======================
+      const totalRendirZ = Number(cierreOriginal.total_a_rendir) || 0;
       const totalCreditos = creditos.reduce((acc, c) => acc + c.importe, 0);
-      let totalDeclarado = totalCreditos;
+      
       const diferenciaBilletera = (billetera.entregado || 0) - (billetera.recibido || 0);
 
-      if (diferenciaBilletera >= 0) {
-        totalRendir += diferenciaBilletera;
-      } else {
-        totalDeclarado += Math.abs(diferenciaBilletera);
-      }
-      const diferenciaFinal = totalRendir - totalDeclarado;
+      // El total declarado es la suma de los créditos más la diferencia neta de la billetera.
+      const totalDeclaradoFinal = totalCreditos + diferenciaBilletera;
+      
+      // La diferencia final es lo declarado menos lo que se debía rendir del Z.
+      const diferenciaFinal = totalDeclaradoFinal - totalRendirZ;
+      // ===================== FIN DE LA LÓGICA SINCRONIZADA ======================
 
       const creditosAInsertar = creditos.filter(c => c.importe > 0).map(c => [cierreId, c.item, c.importe]);
       if (creditosAInsertar.length > 0) {
@@ -85,7 +86,9 @@ const CajaDiariaModel = {
            declarado_total_final = ?,
            diferencia_final = ?
          WHERE id = ?`,
-        [billetera.recibido, billetera.entregado, totalDeclarado, diferenciaFinal, cierreId]
+       // [billetera.recibido, billetera.entregado, totalDeclarado, diferenciaFinal, cierreId]
+        [billetera.recibido, billetera.entregado, totalDeclaradoFinal, diferenciaFinal, cierreId]
+
       );
 
       await connection.commit();

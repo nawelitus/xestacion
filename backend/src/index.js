@@ -10,10 +10,11 @@ import { probarConexion } from './config/db.js';
 // Importar rutas
 import authRoutes from './routes/authRoutes.js';
 import cierreRoutes from './routes/cierreRoutes.js';
-import clienteRoutes from './routes/clienteRoutes.js'; // <-- AÑADIR ESTA LÍNEA
-import retiroRoutes from './routes/retiroRoutes.js'; // <-- AÑADIR ESTA LÍNEA
-import empleadoRoutes from './routes/empleadoRoutes.js'; // <-- AÑADIR IMPORT
-import dashboardRoutes from './routes/dashboardRoutes.js'; // <-- AÑADIR IMPORT
+import clienteRoutes from './routes/clienteRoutes.js'; 
+import retiroRoutes from './routes/retiroRoutes.js'; 
+import empleadoRoutes from './routes/empleadoRoutes.js'; 
+import dashboardRoutes from './routes/dashboardRoutes.js'; 
+import usuarioRoutes from './routes/usuarioRoutes.js'; 
 
 import cajaDiariaRoutes from './routes/cajaDiariaRoutes.js';
 // --- Configuración Inicial ---
@@ -36,12 +37,14 @@ probarConexion();
 app.get('/api', (req, res) => {
   res.json({
     mensaje: '¡Bienvenido a la API de G-Station Control!',
-    version: '1.1.0 - Customer Accounts Ready'
+    version: '1.2.0 - User Management Ready' // Actualizamos la versión
   });
 });
 
 // Registrar rutas
 app.use('/api/auth', authRoutes);
+app.use('/api/usuarios', usuarioRoutes); // <-- AÑADIR ESTA LÍNEA
+
 app.use('/api/cierres', cierreRoutes); 
 app.use('/api/clientes', clienteRoutes); // <-- AÑADIR ESTA LÍNEA
 app.use('/api/retiros', retiroRoutes);
