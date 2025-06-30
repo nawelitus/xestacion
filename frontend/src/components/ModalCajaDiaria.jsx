@@ -35,7 +35,7 @@ const FilaCredito = ({ item, indice, actualizarCredito }) => {
             autoFocus
           />
         ) : (
-          <select value={esOpcionPredefinida ? item.item : 'OTRO'} onChange={handleSelectChange} className="w-full bg-secundario p-1 rounded-md text-texto-principal border-transparent">
+          <select value={esOpcionPredefinida ? item.item : 'OTRO'} onChange={handleSelectChange} className="w-full bg-secundario p-1 rounded-md text-texto-principal border-transparent focus:ring-1 focus:ring-blue-500 outline-none">
             <option value="" disabled>Seleccionar...</option>
             {OPCIONES_CREDITO.map(op => <option key={op} value={op}>{op}</option>)}
             <option value="OTRO">{esOpcionPredefinida ? 'Otro (especificar)' : item.item || 'Otro (especificar)'}</option>
@@ -96,26 +96,23 @@ const ModalCajaDiaria = ({ cierre, alCerrar, alProcesarExito }) => {
     setRetiros(retiros.filter((_, i) => i !== indice));
   };
 
-  // ======================= NUEVA LÓGICA DE CÁLCULO CONDICIONAL =======================
   const { totalARendirFinal, totalDeclaradoFinal, diferenciaFinal } = useMemo(() => {
     let totalRendir = Number(cierre.total_a_rendir) || 0;
-    
     const totalCreditos = creditos.reduce((acc, c) => acc + (Number(c.importe) || 0), 0);
-    let totalDeclarado = totalCreditos; // El total declarado base son los créditos.
-
+    let totalDeclarado = totalCreditos;
     const dineroRecibido = Number(billetera.recibido) || 0;
     const dineroEntregado = Number(billetera.entregado) || 0;
-    const diferenciaBilletera = dineroRecibido - dineroEntregado ;
+    const diferenciaBilletera = dineroEntregado - dineroRecibido;
 
     if (diferenciaBilletera >= 0) {
-      // Caso 1: La diferencia es POSITIVA (sobrante de caja), se suma a lo que se debía rendir.
-      totalRendir += diferenciaBilletera;
+           totalDeclarado += Math.abs(diferenciaBilletera);
+
     } else {
-      // Caso 2: La diferencia es NEGATIVA (faltante de caja), su valor positivo se suma a lo declarado.
-      totalDeclarado += Math.abs(diferenciaBilletera);
+      
+      totalDeclarado += -Math.abs(diferenciaBilletera);
     }
     
-    const diferencia = totalRendir - totalDeclarado;
+    const diferencia =   totalDeclarado - totalRendir;
 
     return { 
         totalARendirFinal: totalRendir, 
@@ -123,7 +120,6 @@ const ModalCajaDiaria = ({ cierre, alCerrar, alProcesarExito }) => {
         diferenciaFinal: diferencia 
     };
   }, [creditos, billetera.recibido, billetera.entregado, cierre.total_a_rendir]);
-  // ===================== FIN DE LA NUEVA LÓGICA ======================
   
   const handleSubmit = async () => {
       setError('');
@@ -204,7 +200,13 @@ const ModalCajaDiaria = ({ cierre, alCerrar, alProcesarExito }) => {
            <div className="grid grid-cols-3 gap-4 text-center">
                 <div><p className="text-xs text-texto-secundario">Total a Rendir (Final)</p><p className="font-bold text-lg">{formatearMoneda(totalARendirFinal)}</p></div>
                 <div><p className="text-xs text-texto-secundario">Total Declarado (Final)</p><p className="font-bold text-lg">{formatearMoneda(totalDeclaradoFinal)}</p></div>
-                <div><p className="text-xs text-texto-secundario">Diferencia</p><p className={`font-bold text-lg ${diferenciaFinal.toFixed(2) !== '0.00' ? 'text-red-400' : 'text-green-400'}`}>{formatearMoneda(diferenciaFinal)}</p></div>
+                <div><p className="text-xs text-texto-secundario">Diferencia</p>
+                    {/* ======================= LÓGICA DE COLOR CORREGIDA ======================= */}
+                    <p className={`font-bold text-lg ${diferenciaFinal < 0 ? 'text-red-400' : 'text-green-400'}`}>
+                        {formatearMoneda(diferenciaFinal)}
+                    </p>
+                    {/* ===================== FIN DE LA CORRECCIÓN ====================== */}
+                </div>
            </div>
            {error && <p className="text-red-500 text-center text-sm mt-2">{error}</p>}
            <button onClick={handleSubmit} disabled={enviando} className="w-full mt-4 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-900 text-white font-bold py-2 rounded-md flex items-center justify-center gap-2">

@@ -21,3 +21,66 @@ body {
   border: 2px solid #161B22;
 }
 
+/* ================================================= */
+/* ====== ESTILOS PROFESIONALES PARA IMPRESIÓN ======= */
+/* ================================================= */
+@media print {
+  /* Oculta todo lo que no sea el área de impresión */
+  body > *:not(.print-container) {
+    display: none;
+  }
+
+  /* Asegura que el contenedor de impresión ocupe todo el espacio */
+  .print-container {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: auto;
+    padding: 0;
+    margin: 0;
+  }
+
+  /* Formatea el modal como un documento A4 */
+  .printable-modal {
+    width: 100% !important;
+    max-width: 100% !important;
+    height: auto !important;
+    max-height: none !important;
+    box-shadow: none !important;
+    border: none !important;
+    background-color: white !important;
+    color: black !important;
+    padding: 20mm 15mm; /* Márgenes de una página A4 */
+  }
+
+  /* Oculta botones y otros elementos no imprimibles */
+  .no-print {
+    display: none !important;
+  }
+  
+  /* Asegura que los colores de texto específicos se mantengan en la impresión */
+  .print\\:text-black { color: black !important; }
+  .print\\:bg-white { background-color: white !important; }
+  .print\\:bg-gray-50 { background-color: #F9FAFB !important; } /* Un gris muy claro para bloques */
+  .print\\:border-gray-300 { border-color: #D1D5DB !important; }
+  .print\\:text-gray-700 { color: #374151 !important; }
+  .print\\:text-gray-600 { color: #4B5563 !important; }
+
+  /* Mantiene los colores de estado que solicitaste */
+  .text-red-400 { color: #F87171 !important; }
+  .text-green-400 { color: #4ADE80 !important; }
+  .text-acento-1 { color: #3B82F6 !important; } /* Asumiendo que acento-1 es un azul */
+
+  /* Estilos para mejorar la legibilidad del documento */
+  body {
+    -webkit-print-color-adjust: exact; /* Fuerza al navegador a imprimir los colores */
+    print-color-adjust: exact;
+    font-size: 9pt; /* Tamaño de fuente base para impresión */
+  }
+
+  /* Evita que los bloques se corten entre páginas */
+  fieldset, .grid, .BloqueInforme {
+    page-break-inside: avoid;
+  }
+}

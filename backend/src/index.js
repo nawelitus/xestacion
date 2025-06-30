@@ -19,6 +19,7 @@ import cajaDiariaRoutes from './routes/cajaDiariaRoutes.js';
 // --- Configuración Inicial ---
 const envFile = process.env.NODE_ENV === 'production' ? '.env.produccion' : '.env.desarrollo';
 dotenv.config({ path: `./${envFile}` });
+console.log('🌐 DB_HOST:', process.env.DB_PORT);
 
 const app = express();
 const PORT = process.env.PORT || 4000;

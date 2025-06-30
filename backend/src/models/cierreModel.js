@@ -20,20 +20,18 @@ const CierreModel = {
         });
       }
       const { cabecera, resumenCaja, ventasCombustible, ventasShop, movimientosCaja } = datosParseados;
-      
-      // ======================= CAMBIO AQUÍ =======================
-      // Se añaden los nuevos totales al array de parámetros en el orden correcto
       const params = [
         cabecera.numero_z, cabecera.fecha_turno, cabecera.hora_inicio, cabecera.hora_fin,
         resumenCaja.total_bruto, resumenCaja.total_remitos, resumenCaja.total_gastos,
         resumenCaja.total_a_rendir, resumenCaja.total_faltante, cabecera.usuario_carga_id,
+        cabecera.cerrado_por, 
         resumenCaja.total_cupones, resumenCaja.total_mercadopago,
         resumenCaja.total_tiradas, resumenCaja.total_axion_on,
         JSON.stringify(ventasCombustible), JSON.stringify(ventasShop),
         JSON.stringify(movimientosCaja), JSON.stringify(remitosParaSp)
       ];
       // La llamada al SP ahora tiene 18 parámetros (interrogaciones)
-      await connection.query('CALL sp_insertar_cierre_completo(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)', params);
+      await connection.query('CALL sp_insertar_cierre_completo(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)', params);
       // ===================== FIN DEL CAMBIO ======================
 
       await connection.commit();
