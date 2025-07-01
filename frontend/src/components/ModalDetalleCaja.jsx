@@ -1,244 +1,192 @@
+// src/components/ModalDetalleCaja.jsx
 import React, { useRef } from 'react';
-import { X, Printer } from 'lucide-react';
+import { X, Printer, User, Hash } from 'lucide-react';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
 
-const formatearMoneda = (monto) => new Intl.NumberFormat('es-AR', {
-  style: 'currency',
-  currency: 'ARS'
-}).format(monto || 0);
-
-const formatearFecha = (fechaISO) => new Date(fechaISO).toLocaleDateString('es-AR', {
-  day: '2-digit',
-  month: '2-digit',
-  year: 'numeric'
-});
-
-const BloqueInforme = ({ titulo, total, children, className = '' }) => (
-  <div className={`bg-slate-50 rounded-lg p-4 border border-slate-200 shadow-sm ${className}`}>
-    <div className="flex justify-between items-baseline border-b border-slate-300 pb-2 mb-3">
-      <h4 className="text-base font-bold text-gray-800">{titulo}</h4>
-      {total !== undefined && <span className="text-base font-bold text-gray-900">{formatearMoneda(total)}</span>}
-    </div>
-    <div className="space-y-1">{children}</div>
-  </div>
-);
-
-const FilaDato = ({ etiqueta, valor, valorClassName = '' }) => (
-  <div className="flex justify-between text-sm text-gray-600">
-    <span>{etiqueta}</span>
-    <span className={`font-semibold text-gray-800 ${valorClassName}`}>{valor}</span>
-  </div>
-);
-
-const TablaSimple = ({ data, headers, renderRow, sinDatosMensaje = "Sin ítems" }) => (
-  <table className="w-full text-sm mt-2">
-    <thead>
-      <tr className="border-b border-slate-300">
-        {headers.map((h, index) => (
-          <th key={h} className={`text-left font-semibold py-1 pr-2 text-gray-600 ${index === headers.length - 1 ? 'text-right' : ''}`}>{h}</th>
-        ))}
-      </tr>
-    </thead>
-    <tbody>
-      {data.length > 0 ? (
-        data.map(renderRow)
-      ) : (
-        <tr>
-          <td colSpan={headers.length} className="text-center py-4 text-gray-500">{sinDatosMensaje}</td>
-        </tr>
-      )}
-    </tbody>
-  </table>
-);
+const formatearMoneda = (monto) => new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS' }).format(monto || 0);
+const formatearFecha = (fechaISO) => new Date(fechaISO).toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit', year: 'numeric' });
 
 const ModalDetalleCaja = ({ detalle, alCerrar }) => {
-  const areaImprimibleRef = useRef(null);
+  const ref = useRef(null);
 
-  const handleImprimirConJsPDF = () => {
-    const elementoParaImprimir = areaImprimibleRef.current;
-    if (!elementoParaImprimir) return;
+  const exportarPDF = () => {
+    const input = ref.current;
+    if (!input) return;
 
-    const estilosOriginales = {
-        maxHeight: elementoParaImprimir.style.maxHeight,
-        overflowY: elementoParaImprimir.style.overflowY
-    };
+    const pdf = new jsPDF({
+      orientation: 'portrait',
+      unit: 'mm',
+      format: 'a4'
+    });
 
-    elementoParaImprimir.style.maxHeight = 'none';
-    elementoParaImprimir.style.overflowY = 'visible';
-    
-    html2canvas(elementoParaImprimir, {
-        scale: 2,
-        useCORS: true,
-    }).then(canvas => {
-        elementoParaImprimir.style.maxHeight = estilosOriginales.maxHeight;
-        elementoParaImprimir.style.overflowY = estilosOriginales.overflowY;
-
-        const imgData = canvas.toDataURL('image/png');
-        const pdf = new jsPDF({
-            orientation: 'portrait',
-            unit: 'mm',
-            format: 'a4'
-        });
-
-        const pdfWidth = pdf.internal.pageSize.getWidth();
-        const canvasWidth = canvas.width;
-        const canvasHeight = canvas.height;
-        const ratio = canvasHeight / canvasWidth;
-        const imgWidth = pdfWidth - 20; 
-        const imgHeight = imgWidth * ratio;
-
-        let alturaRestante = imgHeight;
-        let posicion = 10; 
-
-        pdf.addImage(imgData, 'PNG', 10, posicion, imgWidth, imgHeight);
-        alturaRestante -= (pdf.internal.pageSize.getHeight() - 20);
-
-        while (alturaRestante > 0) {
-            posicion -= (pdf.internal.pageSize.getHeight() - 20); 
-            pdf.addPage();
-            pdf.addImage(imgData, 'PNG', 10, posicion, imgWidth, imgHeight);
-            alturaRestante -= (pdf.internal.pageSize.getHeight() - 20);
-        }
-        
-        pdf.save(`Informe_Caja_Z${detalle.cierre.cabecera.numero_z}.pdf`);
+    pdf.html(input, {
+      callback: function (doc) {
+        doc.save(`Informe_Caja_Z${detalle?.cierre?.cabecera?.numero_z}.pdf`);
+      },
+      margin: [10, 10, 10, 10],
+      width: 190,
+      windowWidth: input.scrollWidth
     });
   };
 
   if (!detalle) return null;
-
   const { cierre, creditos, retiros } = detalle;
   const { cabecera } = cierre;
-  const getMovimientosPorTipo = (tipo) =>
-    cierre.movimientosCaja.filter((m) => m.tipo.toLowerCase() === tipo.toLowerCase());
+  const getMovimientosPorTipo = (tipo) => cierre.movimientosCaja.filter(m => m.tipo.toLowerCase() === tipo.toLowerCase());
+
+  // CAMBIO: Aumento de fuente en el título del bloque (text-sm)
+  const Bloque = ({ titulo, children, total }) => (
+    <div className="border border-gray-300 rounded-lg p-3 bg-white shadow-sm w-full h-full flex flex-col">
+      <div className="flex justify-between items-center border-b pb-2 mb-2">
+        <h3 className="text-sm font-semibold text-gray-700">{titulo}</h3>
+        {total !== undefined && <span className="text-sm font-semibold text-gray-800">{formatearMoneda(total)}</span>}
+      </div>
+      <div className="flex-grow">
+        {children}
+      </div>
+    </div>
+  );
+
+  // CAMBIO: Aumento de fuente en las tablas (text-xs)
+  const Tabla = ({ headers, data, renderRow }) => (
+    <table className="w-full text-xs">
+      <thead><tr className="bg-gray-100">{headers.map(h => <th key={h} className="text-left p-1.5 font-semibold text-gray-600">{h}</th>)}</tr></thead>
+      <tbody>{data.map(renderRow)}</tbody>
+    </table>
+  );
+
+  const FilaResumen = ({ etiqueta, valor, color = 'text-gray-800' }) => (
+    <div className="flex justify-between py-1 border-b border-gray-200">
+      <span className="text-gray-600">{etiqueta}</span>
+      <span className={`font-semibold ${color}`}>{formatearMoneda(valor)}</span>
+    </div>
+  );
 
   return (
-    <div className="fixed inset-0 bg-gray-900/70 backdrop-blur-sm flex justify-center items-center z-50 p-4" onClick={alCerrar}>
-      <div className="bg-white rounded-lg shadow-2xl w-full max-w-6xl max-h-[95vh] flex flex-col border border-gray-200" onClick={(e) => e.stopPropagation()}>
-        
-        <div className="flex justify-between items-center p-4 border-b border-gray-200">
-          <h2 className="text-xl font-bold text-gray-800">Informe de Caja y Cierre Z N° {cabecera.numero_z}</h2>
-          <div className="flex items-center gap-4">
-             <button
-              onClick={handleImprimirConJsPDF}
-              className="bg-blue-600 hover:bg-blue-700 text-white font-semibold px-4 py-2 rounded-md inline-flex items-center gap-2 transition-colors duration-200"
-            >
-              <Printer size={16} /> Imprimir / Guardar PDF
+    <div className="fixed inset-0 bg-black/60 flex justify-center items-center z-50 p-4" onClick={alCerrar}>
+      <div className="bg-white rounded-md shadow-xl w-full max-w-7xl max-h-[95vh] overflow-hidden flex flex-col" onClick={e => e.stopPropagation()}>
+        <div className="flex justify-between items-center p-3 border-b bg-gray-50">
+          <div className='flex items-center gap-4'>
+            <div className='flex items-center gap-2 text-gray-700'>
+              <Hash size={18} />
+              <h2 className="text-lg font-bold">Cierre Z N° {cabecera.numero_z}</h2>
+            </div>
+            <div className='flex items-center gap-2 text-gray-600'>
+              <User size={18} />
+              <span className='font-semibold'>Cerrado por: {cabecera.cerrado_por || 'No especificado'}</span>
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <button onClick={exportarPDF} className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 text-sm rounded flex items-center gap-2">
+              <Printer size={16} /> Exportar
             </button>
-            <button onClick={alCerrar} className="text-gray-500 hover:text-gray-900">
-              <X />
-            </button>
+            <button onClick={alCerrar} className="text-gray-500 hover:text-black"><X /></button>
           </div>
         </div>
 
-        <div ref={areaImprimibleRef} className="p-6 overflow-y-auto bg-white text-gray-800" style={{maxHeight: 'calc(95vh - 140px)'}}>
-          <div className="space-y-6">
-            
-            <div className="text-center pb-4 border-b-2 border-gray-300">
-              <h2 className="text-2xl font-bold text-gray-900">Informe de Operatoria de Turno</h2>
-              <p className="text-gray-700">Cierre Z N°: <span className="font-semibold text-blue-600">{cabecera.numero_z}</span></p>
-              <p className="text-sm text-gray-600">
-                Fecha: <span className="font-semibold text-gray-800">{formatearFecha(cabecera.fecha_turno)}</span> | 
-                Horario: <span className="font-semibold text-gray-800">{cabecera.hora_inicio} a {cabecera.hora_fin}</span>
-              </p>
-              <p className="text-sm text-gray-600">
-                Responsable del Cierre: <span className="font-semibold text-gray-800">{cabecera.cerrado_por || 'No especificado'}</span>
-              </p>
-            </div>
+        <div className="overflow-y-auto">
+          {/* CAMBIO: Se aumenta el tamaño de fuente base para el contenido (text-sm) */}
+          <div ref={ref} className="p-3 bg-white text-black text-sm space-y-3">
 
-            <fieldset className="border border-gray-300 p-4 rounded-lg">
-              <legend className="px-2 font-semibold text-blue-600">Resumen de Conciliación</legend>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-center">
-                <div><p className="text-sm text-gray-500">Total a Rendir (Z)</p><p className="font-bold text-xl text-gray-800">{formatearMoneda(cabecera.total_a_rendir)}</p></div>
-                <div><p className="text-sm text-gray-500">Total Declarado</p><p className="font-bold text-xl text-gray-800">{formatearMoneda(cabecera.declarado_total_final)}</p></div>
-                <div>
-                    <p className="text-sm text-gray-500">Diferencia</p>
-                    <p className={`font-bold text-xl ${cabecera.diferencia_final < 0 ? 'text-red-500' : 'text-green-600'}`}>
-                        {formatearMoneda(cabecera.diferencia_final)}
-                    </p>
+            <div className="grid grid-cols-2 md:grid-cols-5 gap-2 text-center mb-1">
+
+                <div className="p-3 bg-gray-50 rounded-lg border">
+                    <p className="text-gray-900 text-xs">                <h2 className="text-lg font-bold">Cierre Z N° {cabecera.numero_z}</h2></p>
+
                 </div>
-              </div>
-            </fieldset>
 
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <div className="space-y-6">
-                <BloqueInforme titulo="Conciliación Manual">
-                  <FilaDato etiqueta="Dinero Recibido (Billetera)" valor={formatearMoneda(cabecera.declarado_billetera_recibido)} />
-                  <FilaDato etiqueta="Dinero Entregado (Billetera)" valor={formatearMoneda(cabecera.declarado_billetera_entregado)} />
-                  <FilaDato etiqueta="Total Créditos Manuales" valor={formatearMoneda(creditos.reduce((acc, c) => acc + Number(c.importe), 0))} />
-                </BloqueInforme>
-                <BloqueInforme titulo="Adelantos de Personal (Manuales)">
-                  <TablaSimple headers={['Nombre', 'Monto']} data={retiros} renderRow={r => (
-                    <tr key={r.id} className="border-b border-gray-200 last:border-none">
-                      <td className="py-1.5">{r.nombre_empleado}</td>
-                      <td className="text-right font-mono">{formatearMoneda(r.monto)}</td>
-                    </tr>
-                  )} />
-                </BloqueInforme>
-              </div>
-
-              <div className="space-y-6">
-                <BloqueInforme titulo="Resumen del Cierre Z">
-                  <FilaDato etiqueta="Venta Bruta" valor={formatearMoneda(cabecera.total_bruto)} />
-                  <FilaDato etiqueta="Total Remitos" valor={formatearMoneda(cabecera.total_remitos)} />
-                  <FilaDato etiqueta="Total Cupones (Tarjetas)" valor={formatearMoneda(cabecera.total_cupones)} />
-                  <FilaDato etiqueta="Total MercadoPago" valor={formatearMoneda(cabecera.total_mercadopago)} />
-                  <FilaDato etiqueta="Total Tiradas" valor={formatearMoneda(cabecera.total_tiradas)} />
-                  <FilaDato etiqueta="Total Gastos" valor={formatearMoneda(cabecera.total_gastos)} />
-                </BloqueInforme>
-              </div>
+                <div className="p-2 bg-gray-50 rounded-lg border">
+                    <p className="text-gray-600 text-xs">Fecha</p>
+                    <p className="text-base font-semibold text-gray-800">{formatearFecha(cabecera.fecha_turno)}</p>
+                </div>
+                <div className="p-2 bg-gray-50 rounded-lg border">
+                    <p className="text-gray-600 text-xs">Horario</p>
+                    <p className="text-base font-semibold text-gray-800">{cabecera.hora_inicio} - {cabecera.hora_fin}</p>
+                </div>
+                <div className="p-2 bg-gray-50 rounded-lg border">
+                    <p className="text-gray-600 text-xs">Cargado por</p>
+                    <p className="text-base font-semibold text-gray-800">{cabecera.usuario_carga_nombre}</p>
+                </div>
+                 <div className="p-2 bg-gray-50 rounded-lg border">
+                    <p className="text-gray-600 text-xs">Cerrado por</p>
+                    <p className="text-base font-semibold text-gray-800">{cabecera.cerrado_por}</p>
+                </div>
+            </div>
+            
+            <div className="flex justify-around items-center p-3 bg-blue-50 rounded-lg border border-blue-200">
+              <div><p className="text-gray-600 text-xs">Total a Rendir (Z)</p><p className="text-xl font-bold text-blue-700">{formatearMoneda(cabecera.total_a_rendir)}</p></div>
+              <div><p className="text-gray-600 text-xs">Total Declarado</p><p className="text-xl font-bold text-green-600">{formatearMoneda(cabecera.declarado_total_final)}</p></div>
+              <div><p className="text-gray-600 text-xs">Diferencia</p><p className={`text-xl font-bold ${cabecera.diferencia_final < 0 ? 'text-red-500' : 'text-green-500'}`}>{formatearMoneda(cabecera.diferencia_final)}</p></div>
             </div>
 
-            <fieldset className="border border-gray-300 p-4 rounded-lg">
-              <legend className="px-2 font-semibold text-blue-600">Detalle Completo del Cierre Z</legend>
-              <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6 mt-4">
-                <BloqueInforme titulo="Ventas de Combustible" total={cierre.ventasCombustible.reduce((acc, item) => acc + Number(item.importe), 0)}>
-                  <TablaSimple headers={['Producto', 'Litros', 'Importe']} data={cierre.ventasCombustible} renderRow={item => (
-                    <tr key={item.id} className="border-b border-gray-200 last:border-none"><td className="py-1.5">{item.producto_nombre}</td><td className="font-mono">{item.litros} L</td><td className="text-right font-mono">{formatearMoneda(item.importe)}</td></tr>
-                  )} />
-                </BloqueInforme>
-                <BloqueInforme titulo="Ventas del Shop" total={cierre.ventasShop.reduce((acc, item) => acc + Number(item.importe), 0)}>
-                   <TablaSimple headers={['Producto', 'Cant.', 'Importe']} data={cierre.ventasShop} renderRow={item => (
-                    <tr key={item.id} className="border-b border-gray-200 last:border-none"><td className="py-1.5">{item.producto_nombre}</td><td className="font-mono">{item.cantidad}</td><td className="text-right font-mono">{formatearMoneda(item.importe)}</td></tr>
-                  )} />
-                </BloqueInforme>
-                <BloqueInforme titulo="Remitos" total={cabecera.total_remitos}>
-                  <TablaSimple headers={['Cliente', 'Monto']} data={cierre.remitos} renderRow={item => (
-                    <tr key={item.id} className="border-b border-gray-200 last:border-none"><td className="py-1.5">{item.cliente_nombre}</td><td className="text-right font-mono">{formatearMoneda(item.monto)}</td></tr>
-                  )} />
-                </BloqueInforme>
-                <BloqueInforme titulo="Cupones (Tarjetas)" total={cabecera.total_cupones}>
-                  <TablaSimple headers={['Descripción', 'Monto']} data={getMovimientosPorTipo('TARJETAS')} renderRow={item => (
-                    <tr key={item.id} className="border-b border-gray-200 last:border-none"><td className="py-1.5">{item.descripcion}</td><td className="text-right font-mono">{formatearMoneda(item.monto)}</td></tr>
-                  )} />
-                </BloqueInforme>
-                <BloqueInforme titulo="MercadoPago" total={cabecera.total_mercadopago}>
-                  <TablaSimple headers={['Descripción', 'Monto']} data={getMovimientosPorTipo('MERCADOPAGO')} renderRow={item => (
-                    <tr key={item.id} className="border-b border-gray-200 last:border-none"><td className="py-1.5">{item.descripcion}</td><td className="text-right font-mono">{formatearMoneda(item.monto)}</td></tr>
-                  )} />
-                </BloqueInforme>
-                 <BloqueInforme titulo="Tiradas" total={cabecera.total_tiradas}>
-                   <TablaSimple headers={['Descripción', 'Comprobante', 'Monto']} data={getMovimientosPorTipo('TIRADAS')} renderRow={item => (
-                    <tr key={item.id} className="border-b border-gray-200 last:border-none"><td className="py-1.5">{item.descripcion}</td><td>{item.comprobante_nro}</td><td className="text-right font-mono">{formatearMoneda(item.monto)}</td></tr>
-                  )} />
-                </BloqueInforme>
-                 <BloqueInforme titulo="Gastos" total={cabecera.total_gastos}>
-                   <TablaSimple headers={['Descripción', 'Comprobante', 'Monto']} data={getMovimientosPorTipo('GASTOS')} renderRow={item => (
-                     <tr key={item.id} className="border-b border-gray-200 last:border-none"><td className="py-1.5">{item.descripcion}</td><td>{item.comprobante_nro}</td><td className="text-right font-mono">{formatearMoneda(item.monto)}</td></tr>
-                  )} />
-                </BloqueInforme>
-              </div>
-            </fieldset>
+            {/* --- NUEVA SECCIÓN DE RESUMEN --- */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2 ">
+              <Bloque titulo="Conciliación Manual">
+                <div className="space-y-1.5">
+                  <FilaResumen etiqueta="Dinero Recibido" valor={cabecera.declarado_billetera_recibido} />
+                  <FilaResumen etiqueta="Dinero Entregado" valor={cabecera.declarado_billetera_entregado} />
+                  <FilaResumen etiqueta="Dif. Billetera" valor={cabecera.declarado_billetera_entregado - cabecera.declarado_billetera_recibido} />
+                </div>
+              </Bloque>
+
+              {/* NUEVO BLOQUE */}
+              <Bloque titulo="Resumen del Cierre Z">
+                  <div className="space-y-1.5">
+                      <FilaResumen etiqueta="Venta Bruta" valor={cabecera.total_bruto} color="text-blue-600" />
+                      <FilaResumen etiqueta="Total Remitos" valor={cabecera.total_remitos} />
+                      <FilaResumen etiqueta="Total Cupones" valor={cabecera.total_cupones} />
+                      <FilaResumen etiqueta="Total MercadoPago" valor={cabecera.total_mercadopago} />
+                      <FilaResumen etiqueta="Total Tiradas" valor={cabecera.total_tiradas} />
+                      <FilaResumen etiqueta="Total Gastos" valor={cabecera.total_gastos} />
+                      <FilaResumen etiqueta="Total Axion ON" valor={cabecera.total_axion_on} />
+                  </div>
+              </Bloque>
+
+              <Bloque titulo="Retiros de Personal" total={retiros.reduce((acc, r) => acc + Number(r.monto), 0)}>
+                <Tabla headers={["Empleado", "Monto"]} data={retiros} renderRow={(r, i) => (<tr key={i}><td className="p-1.5">{r.nombre_empleado}</td><td className="p-1.5 text-right">{formatearMoneda(r.monto)}</td></tr>)}/>
+              </Bloque>
+            </div>
+               
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
+                 <Bloque titulo="Tiradas" total={cabecera.total_tiradas}>
+                 <Tabla headers={["Descripción", "Monto"]} data={getMovimientosPorTipo('TIRADAS')} renderRow={(m, i) => (<tr key={i}><td className="p-1.5">{m.descripcion}</td><td className="p-1.5 text-right">{formatearMoneda(m.monto)}</td></tr>)}/>
+              </Bloque>        
+              <Bloque titulo="Ventas de Combustible" total={cierre.ventasCombustible.reduce((acc, item) => acc + Number(item.importe), 0)}>
+                 <Tabla headers={["Producto", "Litros", "Importe"]} data={cierre.ventasCombustible} renderRow={(v, i) => (<tr key={i}><td className="p-1.5">{v.producto_nombre}</td><td className="p-1.5">{(Number(v.litros) || 0).toFixed(2)}</td><td className="p-1.5 text-right">{formatearMoneda(v.importe)}</td></tr>)}/>
+              </Bloque>
+              <Bloque titulo="Ventas Shop" total={cierre.ventasShop.reduce((acc, item) => acc + Number(item.importe), 0)}>
+                 <Tabla headers={["Producto", "Cant.", "Importe"]} data={cierre.ventasShop} renderRow={(v, i) => (<tr key={i}><td className="p-1.5">{v.producto_nombre}</td><td className="p-1.5">{v.cantidad}</td><td className="p-1.5 text-right">{formatearMoneda(v.importe)}</td></tr>)}/>
+              </Bloque>
+
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
+              <Bloque titulo="Remitos" total={cabecera.total_remitos}>
+                 <Tabla headers={["Cliente", "Monto"]} data={cierre.remitos} renderRow={(r, i) => (<tr key={i}><td className="p-1.5">{r.cliente_nombre}</td><td className="p-1.5 text-right">{formatearMoneda(r.monto)}</td></tr>)}/>
+              </Bloque>
+              <Bloque titulo="Cupones (Tarjetas)" total={cabecera.total_cupones}>
+                 <Tabla headers={["Descripción", "Monto"]} data={getMovimientosPorTipo('TARJETAS')} renderRow={(m, i) => (<tr key={i}><td className="p-1.5">{m.descripcion}</td><td className="p-1.5 text-right">{formatearMoneda(m.monto)}</td></tr>)}/>
+              </Bloque>
+              <Bloque titulo="MercadoPago" total={cabecera.total_mercadopago}>
+                 <Tabla headers={["Descripción", "Monto"]} data={getMovimientosPorTipo('MERCADOPAGO')} renderRow={(m, i) => (<tr key={i}><td className="p-1.5">{m.descripcion}</td><td className="p-1.5 text-right">{formatearMoneda(m.monto)}</td></tr>)}/>
+              </Bloque>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
+              <Bloque titulo="Gastos" total={cabecera.total_gastos}>
+                 <Tabla headers={["Descripción", "Monto"]} data={getMovimientosPorTipo('GASTOS')} renderRow={(m, i) => (<tr key={i}><td className="p-1.5">{m.descripcion}</td><td className="p-1.5 text-right">{formatearMoneda(m.monto)}</td></tr>)}/>
+              </Bloque>
+              <Bloque titulo="AXION ON" total={cabecera.total_axion_on}>
+                 <Tabla headers={["Descripción", "Monto"]} data={getMovimientosPorTipo('AXION_ON')} renderRow={(m, i) => (<tr key={i}><td className="p-1.5">{m.descripcion}</td><td className="p-1.5 text-right">{formatearMoneda(m.monto)}</td></tr>)}/>
+              </Bloque>
+
+              <Bloque titulo="Créditos / Vales" total={creditos.reduce((acc, c) => acc + Number(c.importe), 0)}>
+                <Tabla headers={["Item", "Importe"]} data={creditos} renderRow={(item, i) => (<tr key={i}><td className="p-1.5">{item.item}</td><td className="p-1.5 text-right">{formatearMoneda(item.importe)}</td></tr>)}/>
+              </Bloque>
+            </div>
+
           </div>
-        </div>
-        
-        <div className="p-4 bg-gray-50 border-t border-gray-200 mt-auto flex justify-end items-center gap-4">
-           <button
-            onClick={alCerrar}
-            className="bg-white hover:bg-gray-100 text-gray-700 font-semibold px-4 py-2 rounded-md border border-gray-300"
-          >
-            Cerrar
-          </button>
         </div>
       </div>
     </div>
@@ -246,4 +194,3 @@ const ModalDetalleCaja = ({ detalle, alCerrar }) => {
 };
 
 export default ModalDetalleCaja;
-

@@ -4,9 +4,11 @@ import { obtenerDetalleCliente, registrarPagoCliente } from '../services/cliente
 import { ArrowLeft, Loader, AlertTriangle, Calendar, User, Hash, ClipboardList, TrendingDown, TrendingUp, Send } from 'lucide-react';
 import useAuth from '../hooks/useAuth';
 
+// --- Funciones de formato (sin cambios) ---
 const formatearFechaHora = (fechaISO) => new Date(fechaISO).toLocaleString('es-AR', { dateStyle: 'short', timeStyle: 'short' });
 const formatearMoneda = (monto) => new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS' }).format(monto || 0);
 
+// --- Componentes hijos (sin cambios) ---
 const TarjetaInfoCliente = ({ cliente }) => (
   <div className="bg-primario p-6 rounded-lg border border-borde">
     <div className="flex justify-between items-start">
@@ -42,7 +44,7 @@ const FormularioPago = ({ clienteId, onPagoExitoso }) => {
             await registrarPagoCliente(clienteId, { monto: Number(monto), concepto });
             setMonto('');
             setConcepto('');
-            onPagoExitoso(); // Llama a la función callback para recargar datos
+            onPagoExitoso();
         } catch (err) {
             setError('Error al registrar el pago. Intente de nuevo.');
         } finally {
@@ -110,25 +112,29 @@ const ClienteDetalle = () => {
     const [cliente, setCliente] = useState(null);
     const [estaCargando, setEstaCargando] = useState(true);
     const [error, setError] = useState(null);
-    const { usuario } = useAuth(); // Para verificar roles si es necesario
+    // <-- CAMBIO 1: Usar 'auth' en lugar de 'usuario'
+    const { auth } = useAuth(); 
 
     const cargarDetalleCliente = useCallback(async () => {
         try {
-            setEstaCargando(true);
+            // No es necesario volver a poner estaCargando en true aquí
+            // si solo se llama desde useEffect y onPagoExitoso.
             const datos = await obtenerDetalleCliente(id);
             setCliente(datos);
         } catch (err) {
             setError('No se pudo cargar la información del cliente.');
         } finally {
-            setEstaCargando(false);
+            // Solo se apaga el spinner principal una vez.
+            if(estaCargando) setEstaCargando(false);
         }
-    }, [id]);
+    }, [id, estaCargando]);
 
     useEffect(() => {
         cargarDetalleCliente();
     }, [cargarDetalleCliente]);
 
-    if (estaCargando) {
+    // <-- CAMBIO 2: Añadir comprobación de carga para 'auth'
+    if (!auth || estaCargando) {
         return <div className="flex justify-center items-center h-64"><Loader className="animate-spin text-blue-500" size={48} /></div>;
     }
 
@@ -138,7 +144,7 @@ const ClienteDetalle = () => {
                 <AlertTriangle className="mx-auto text-red-400" size={48} />
                 <h2 className="mt-4 text-xl font-semibold text-texto-principal">Error</h2>
                 <p className="text-texto-secundario">{error}</p>
-                <Link to="/dashboard/cuentas-corrientes" className="mt-6 inline-flex items-center gap-2 bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-600">
+                <Link to="/cuentas-corrientes" className="mt-6 inline-flex items-center gap-2 bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-600">
                     <ArrowLeft size={16} /> Volver a Cuentas Corrientes
                 </Link>
             </div>
@@ -149,7 +155,7 @@ const ClienteDetalle = () => {
 
     return (
         <div className="space-y-6">
-            <Link to="/dashboard/cuentas-corrientes" className="inline-flex items-center gap-2 text-sm text-blue-400 hover:underline">
+            <Link to="/cuentas-corrientes" className="inline-flex items-center gap-2 text-sm text-blue-400 hover:underline">
                 <ArrowLeft size={16} /> Volver a la lista de clientes
             </Link>
             
@@ -160,8 +166,8 @@ const ClienteDetalle = () => {
                     <TablaMovimientos movimientos={cliente.movimientos} />
                 </div>
                 <div className="lg:col-span-1">
-                    {/* Solo administradores y editores pueden registrar pagos */}
-                    {(usuario.rol === 'administrador' || usuario.rol === 'editor') && (
+                    {/* <-- CAMBIO 3: Usar auth.rol en la condición */}
+                    {(auth.rol === 'administrador' || auth.rol === 'editor') && (
                         <FormularioPago clienteId={id} onPagoExitoso={cargarDetalleCliente} />
                     )}
                 </div>

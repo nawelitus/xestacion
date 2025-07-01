@@ -39,7 +39,7 @@ const VistaDetalleEmpleado = ({ empleado, alVolver }) => {
                                 <th className="p-3">Fecha de Registro</th>
                                 <th className="p-3">Concepto</th>
                                 <th className="p-3 text-right">Monto</th>
-                                <th className="p-3 text-center">Registrado en Cierre Z</th>
+                                <th className="p-3 text-center">Origen del Adelanto</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-borde">
@@ -49,14 +49,18 @@ const VistaDetalleEmpleado = ({ empleado, alVolver }) => {
                                     <td className="p-3 text-texto-secundario">{item.concepto}</td>
                                     <td className="p-3 text-right font-semibold">{formatearMoneda(item.monto)}</td>
                                     <td className="p-3 text-center">
-                                       <Link to={`/dashboard/cierres/${item.cierre_z_id}`} className="text-blue-400 hover:text-blue-300 hover:underline inline-flex items-center gap-1">
-                                            Ver Z N° {item.cierre_z_id}
+                                       {/* --- ÚNICO CAMBIO AQUÍ --- */}
+                                       <Link to={`/cierre/${item.cierre_z_id}`} className="text-blue-400 hover:text-blue-300 hover:underline inline-flex items-center gap-1.5" title="Ver detalle del Cierre Z de origen">
+                                            <FileText size={14}/> Ver Origen
                                        </Link>
                                     </td>
                                 </tr>
                             ))}
                         </tbody>
                     </table>
+                     {detalle.length === 0 && (
+                        <p className="text-center text-texto-secundario p-6">Este empleado no tiene adelantos registrados.</p>
+                    )}
                 </div>
             )}
         </div>
