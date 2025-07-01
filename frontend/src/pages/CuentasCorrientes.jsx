@@ -74,7 +74,7 @@ const CuentasCorrientes = () => {
         <ul className="divide-y divide-borde">
           {clientesFiltrados.map(cliente => (
             <li key={cliente.cliente_id}>
-              <Link to={`/dashboard/cuentas-corrientes/${cliente.cliente_id}`} className="flex items-center justify-between p-4 hover:bg-secundario transition-colors">
+             <Link to={`/cuentas-corrientes/${cliente.cliente_id}`} className="flex items-center justify-between p-4 hover:bg-secundario transition-colors">
                 <span className="font-medium text-texto-principal">{cliente.cliente_nombre}</span>
                 <div className="flex items-center gap-4">
                   <SaldoBadge saldo={cliente.saldo_actual} />

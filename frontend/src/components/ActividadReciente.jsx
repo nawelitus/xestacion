@@ -24,7 +24,7 @@ const ActividadReciente = ({ actividades }) => {
                             {formatearFecha(act.fecha_turno)} - Cargado por {act.usuario_carga_nombre}
                         </p>
                     </div>
-                    <Link to={`/dashboard/cierres/${act.id}`} className="text-blue-400 hover:underline text-sm font-semibold">
+<Link to={`/cierre/${act.id}`} className="text-blue-400 hover:underline text-sm font-semibold">
                         Ver Detalle
                     </Link>
                 </li>

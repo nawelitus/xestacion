@@ -56,3 +56,8 @@ export const obtenerDetallePorId = async (id) => {
     throw error;
   }
 };
+
+export async function getCierres() {
+  const response = await api.get('/cierres');
+  return response.data;
+};
