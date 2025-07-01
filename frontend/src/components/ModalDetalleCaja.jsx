@@ -3,24 +3,6 @@ import { X, Printer } from 'lucide-react';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
 
-// ================================================================
-// Componente ModalDetalleCaja.jsx (Versión 3 - Fondo Claro)
-//
-// CAMBIOS REALIZADOS:
-// 1.  DISEÑO DE FONDO CLARO: Se cambió el diseño a un fondo blanco
-//     (bg-white) y textos oscuros para mejorar drásticamente la
-//     legibilidad del informe, como solicitaste.
-// 2.  CARDS DIFERENCIADOS: Los bloques de informe ahora usan un
-//     color de fondo gris muy suave (bg-slate-50) y sombras para
-//     resaltar sobre el fondo blanco de forma elegante.
-// 3.  ARREGLO DE IMPRESIÓN: Se corrigió el problema del contenido
-//     cortado. La función `handleImprimirConJsPDF` ahora expande
-//     temporalmente el contenido a su altura total ANTES de generar
-//     la imagen, asegurando que NADA se corte. Luego, genera un PDF
-//     multipágina si es necesario.
-// ================================================================
-
-
 const formatearMoneda = (monto) => new Intl.NumberFormat('es-AR', {
   style: 'currency',
   currency: 'ARS'
@@ -73,30 +55,22 @@ const TablaSimple = ({ data, headers, renderRow, sinDatosMensaje = "Sin ítems" 
 const ModalDetalleCaja = ({ detalle, alCerrar }) => {
   const areaImprimibleRef = useRef(null);
 
-  /**
-   * FUNCIÓN DE IMPRESIÓN CORREGIDA
-   * Soluciona el problema del contenido cortado.
-   */
   const handleImprimirConJsPDF = () => {
     const elementoParaImprimir = areaImprimibleRef.current;
     if (!elementoParaImprimir) return;
 
-    // Guardar estilos originales para restaurarlos después
     const estilosOriginales = {
         maxHeight: elementoParaImprimir.style.maxHeight,
         overflowY: elementoParaImprimir.style.overflowY
     };
 
-    // Modificar estilos para que el contenido completo sea visible
     elementoParaImprimir.style.maxHeight = 'none';
     elementoParaImprimir.style.overflowY = 'visible';
     
     html2canvas(elementoParaImprimir, {
         scale: 2,
         useCORS: true,
-        // No es necesario un fondo, ya que el modal es blanco
     }).then(canvas => {
-        // Restaurar estilos originales inmediatamente después de la captura
         elementoParaImprimir.style.maxHeight = estilosOriginales.maxHeight;
         elementoParaImprimir.style.overflowY = estilosOriginales.overflowY;
 
@@ -111,17 +85,17 @@ const ModalDetalleCaja = ({ detalle, alCerrar }) => {
         const canvasWidth = canvas.width;
         const canvasHeight = canvas.height;
         const ratio = canvasHeight / canvasWidth;
-        const imgWidth = pdfWidth - 20; // Ancho A4 con márgenes de 10mm por lado
+        const imgWidth = pdfWidth - 20; 
         const imgHeight = imgWidth * ratio;
 
         let alturaRestante = imgHeight;
-        let posicion = 10; // Margen superior inicial
+        let posicion = 10; 
 
         pdf.addImage(imgData, 'PNG', 10, posicion, imgWidth, imgHeight);
         alturaRestante -= (pdf.internal.pageSize.getHeight() - 20);
 
         while (alturaRestante > 0) {
-            posicion -= (pdf.internal.pageSize.getHeight() - 20); // Mover la "ventana de visión" de la imagen hacia abajo
+            posicion -= (pdf.internal.pageSize.getHeight() - 20); 
             pdf.addPage();
             pdf.addImage(imgData, 'PNG', 10, posicion, imgWidth, imgHeight);
             alturaRestante -= (pdf.internal.pageSize.getHeight() - 20);

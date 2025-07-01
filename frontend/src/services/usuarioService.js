@@ -8,10 +8,6 @@ import api from './api';
 // la gestión de usuarios (CRUD).
 // ================================================================
 
-/**
- * Obtiene la lista de todos los usuarios del sistema.
- * @returns {Promise<Array>} La lista de usuarios.
- */
 export const listarUsuarios = async () => {
   try {
     const { data } = await api.get('/usuarios');

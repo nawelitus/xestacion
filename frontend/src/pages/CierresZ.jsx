@@ -70,7 +70,7 @@ const CierresZ = () => {
                       to={`/cierre/${cierre.id}`}
                       className="text-blue-500 hover:underline text-sm"
                     >
-                      Ver Detalle
+                      Detalle
                     </Link>
                   </td>
                 </tr>

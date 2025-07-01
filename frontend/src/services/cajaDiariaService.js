@@ -38,4 +38,4 @@ export const procesarCajaDiaria = async (cierreId, datosCaja) => {
     console.error(`Error al procesar la caja del cierre ${cierreId}:`, error);
     throw error;
   }
-};
+};//-

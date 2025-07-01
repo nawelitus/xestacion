@@ -3,21 +3,6 @@ import { procesarCajaDiaria } from '../services/cajaDiariaService';
 import { obtenerTodosLosEmpleados } from '../services/empleadoService';
 import { X, Loader, Users, Banknote, Landmark, PlusCircle, Trash2 } from 'lucide-react';
 
-// ================================================================
-// Componente ModalCajaDiaria.jsx (Versión con Legibilidad Corregida)
-//
-// CAMBIO REALIZADO:
-// Se ajustaron los estilos del elemento <select> en la tabla de
-// "Créditos y Vales" para solucionar el problema de legibilidad
-// que se mostraba en la imagen.
-//
-// 1.  Se cambió `bg-secundario` por `bg-fondo` para que coincida con
-//     los otros inputs.
-// 2.  Se añadió la clase `appearance-none` para eliminar el estilo
-//     nativo del navegador y permitir la personalización del fondo.
-// 3.  Se agregó `border border-borde` para una apariencia consistente.
-// ================================================================
-
 
 const formatearMoneda = (monto) => new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS' }).format(monto || 0);
 
@@ -51,7 +36,6 @@ const FilaCredito = ({ item, indice, actualizarCredito }) => {
             autoFocus
           />
         ) : (
-          // --- ESTA ES LA LÍNEA MODIFICADA ---
           <select 
             value={esOpcionPredefinida ? item.item : 'OTRO'} 
             onChange={handleSelectChange} 

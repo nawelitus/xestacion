@@ -60,4 +60,4 @@ export const obtenerDetallePorId = async (id) => {
 export async function getCierres() {
   const response = await api.get('/cierres');
   return response.data;
-};
+};//*

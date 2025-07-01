@@ -1,15 +1,13 @@
 import React, { useState } from 'react';
 import { Outlet } from 'react-router-dom';
 import Sidebar from './Sidebar';
-import Header from './Header'; // <-- Importar el nuevo Header
+import Header from './Header'; 
 
 const Layout = () => {
-  // Estado para controlar la visibilidad del sidebar en móviles
   const [sidebarAbierto, setSidebarAbierto] = useState(false);
 
   return (
     <div className="relative min-h-screen md:flex bg-fondo text-texto-principal">
-      {/* Overlay para cerrar el menú al hacer clic fuera en móvil */}
       {sidebarAbierto && (
         <div 
             className="fixed inset-0 bg-black/50 z-20 md:hidden" 

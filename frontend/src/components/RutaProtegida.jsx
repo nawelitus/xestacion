@@ -16,8 +16,7 @@ import useAuth from '../hooks/useAuth';
 const RutaProtegida = () => {
   const { auth, cargando } = useAuth();
 
-  // Si aún estamos verificando el token, mostramos un mensaje.
-  // ESTA LÍNEA ES LA CLAVE PARA SOLUCIONAR EL PROBLEMA.
+  
   if (cargando) {
     return (
         <div className="flex justify-center items-center h-screen bg-primario">

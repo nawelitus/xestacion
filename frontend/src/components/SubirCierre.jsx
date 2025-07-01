@@ -4,7 +4,6 @@ import { subirCierre } from '../services/cierreService';
 import { UploadCloud, Loader, CheckCircle, AlertTriangle, FileUp, ClipboardPaste } from 'lucide-react';
 
 const SubirCierre = ({ onUploadSuccess }) => {
-  // Estado para el modo de subida: 'archivo' o 'texto'
   const [modo, setModo] = useState('archivo'); 
   
   // Estados para manejar el archivo o el texto pegado
@@ -12,7 +11,7 @@ const SubirCierre = ({ onUploadSuccess }) => {
   const [textoPegado, setTextoPegado] = useState('');
 
   // Estados para la retroalimentación al usuario
-  const [estadoCarga, setEstadoCarga] = useState('inicial'); // 'inicial', 'cargando', 'exito', 'error'
+  const [estadoCarga, setEstadoCarga] = useState('inicial'); 
   const [mensaje, setMensaje] = useState('');
 
   const onDrop = useCallback(acceptedFiles => {

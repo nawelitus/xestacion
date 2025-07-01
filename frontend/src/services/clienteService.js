@@ -1,5 +1,4 @@
 import api from './api';
-
 /**
  * @description Obtiene la lista completa de clientes con sus saldos actuales.
  * @returns {Promise<Array>} Un arreglo de objetos de clientes.
@@ -28,7 +27,7 @@ export const obtenerDetalleCliente = async (id) => {
     throw error;
   }
 };
-
+//-
 /**
  * @description Registra un nuevo pago (crédito) en la cuenta de un cliente.
  * @param {string|number} id - El ID del cliente.

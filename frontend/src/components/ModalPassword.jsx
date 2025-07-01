@@ -2,13 +2,6 @@ import React, { useState } from 'react';
 import { actualizarPasswordUsuario } from '../services/usuarioService';
 import { X, Loader } from 'lucide-react';
 
-// ================================================================
-// ARCHIVO: src/components/ModalPassword.jsx (NUEVO)
-//
-// DESCRIPCIÓN:
-// Modal con un formulario específico para cambiar la contraseña
-// de un usuario existente.
-// ================================================================
 
 const ModalPassword = ({ usuario, alCerrar, alExito }) => {
   const [nuevaPassword, setNuevaPassword] = useState('');

@@ -4,7 +4,6 @@ import { obtenerDetalleCliente, registrarPagoCliente } from '../services/cliente
 import { ArrowLeft, Loader, AlertTriangle, Calendar, User, Hash, ClipboardList, TrendingDown, TrendingUp, Send } from 'lucide-react';
 import useAuth from '../hooks/useAuth';
 
-// --- Helpers y Componentes de UI (reutilizados y nuevos) ---
 const formatearFechaHora = (fechaISO) => new Date(fechaISO).toLocaleString('es-AR', { dateStyle: 'short', timeStyle: 'short' });
 const formatearMoneda = (monto) => new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS' }).format(monto || 0);
 

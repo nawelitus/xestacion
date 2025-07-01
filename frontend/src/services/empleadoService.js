@@ -39,4 +39,4 @@ export const obtenerDetalleDeRetiros = async (nombre) => {
         console.error(`Error al obtener el detalle de retiros para ${nombre}:`, error);
         throw error;
     }
-    };
+    };//

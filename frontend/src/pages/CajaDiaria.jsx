@@ -65,7 +65,6 @@ const CajaDiaria = () => {
   
   const abrirModalDetalle = async (cierreId) => {
     try {
-      // Aquí podrías poner un mini-loader si la carga es lenta
       const detalle = await obtenerDetalleCajaProcesada(cierreId);
       setDetalleSeleccionado(detalle);
       setModalDetalleAbierto(true);

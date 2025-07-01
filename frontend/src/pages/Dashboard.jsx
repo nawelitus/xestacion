@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import useAuth from '../hooks/useAuth';
 import { obtenerDatosDashboard } from '../services/dashboardService';
 import SubirCierre from '../components/SubirCierre';
-import ActividadReciente from '../components/ActividadReciente'; // <-- Importar el componente
+import ActividadReciente from '../components/ActividadReciente'; 
 import { Loader, AlertTriangle, ArrowUpRight, ArrowDownRight, Users, FileText } from 'lucide-react';
 
 const formatearMoneda = (monto) => new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS' }).format(monto || 0);
@@ -27,7 +27,6 @@ const Dashboard = () => {
 
     const cargarDatos = useCallback(async () => {
         try {
-            // Para refrescos, no mostramos el loader grande, permitiendo una actualización más suave.
             if (!datos) setEstaCargando(true);
             const data = await obtenerDatosDashboard();
             setDatos(data);
@@ -36,11 +35,10 @@ const Dashboard = () => {
         } finally {
             setEstaCargando(false);
         }
-    }, [datos]); // Usamos 'datos' como dependencia para el refresco suave
+    }, [datos]); 
 
     useEffect(() => {
         cargarDatos();
-        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []); // La llamada inicial solo se hace una vez
 
     if (estaCargando) {

@@ -19,7 +19,6 @@ export const obtenerRetiros = async (filtros = {}) => {
       params.append('fechaHasta', filtros.fechaHasta);
     }
     
-    // Realizamos la petición GET, api.get se encargará de añadir '?' si es necesario.
     const { data } = await api.get('/retiros', { params });
     return data;
   } catch (error) {

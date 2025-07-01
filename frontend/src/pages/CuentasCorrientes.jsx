@@ -4,7 +4,7 @@ import { listarClientesConSaldos } from '../services/clienteService';
 import { Loader, AlertTriangle, Users, ChevronsRight, Search } from 'lucide-react';
 
 const formatearMoneda = (monto) => new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS' }).format(monto || 0);
-
+//--
 const SaldoBadge = ({ saldo }) => {
   const saldoNumerico = Number(saldo) || 0;
   let claseColor = 'bg-gray-500/20 text-gray-300'; // Saldo Cero

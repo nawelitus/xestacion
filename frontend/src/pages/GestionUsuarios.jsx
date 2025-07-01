@@ -3,11 +3,7 @@ import { listarUsuarios, cambiarEstadoUsuario } from '../services/usuarioService
 import { Loader, AlertTriangle, UserPlus, Edit, KeyRound, CheckCircle, XCircle, RefreshCw } from 'lucide-react';
 import ModalUsuario from '../components/ModalUsuario';
 import ModalPassword from '../components/ModalPassword';
-
 // ================================================================
-// ARCHIVO: src/pages/GestionUsuarios.jsx (NUEVO)
-//
-// DESCRIPCIÓN:
 // Página principal para la administración de usuarios. Muestra una
 // tabla con todos los usuarios y permite realizar acciones como
 // crear, editar, cambiar contraseña y habilitar/deshabilitar.
@@ -22,8 +18,6 @@ const GestionUsuarios = () => {
   const [estaCargando, setEstaCargando] = useState(true);
   const [error, setError] = useState(null);
   const [refrescar, setRefrescar] = useState(false);
-
-  // Estados para los modales
   const [modalUsuarioAbierto, setModalUsuarioAbierto] = useState(false);
   const [modalPasswordAbierto, setModalPasswordAbierto] = useState(false);
   const [usuarioSeleccionado, setUsuarioSeleccionado] = useState(null);
@@ -68,7 +62,7 @@ const GestionUsuarios = () => {
 
   const handleExito = () => {
     cerrarModales();
-    setRefrescar(prev => !prev); // Forza la recarga de datos
+    setRefrescar(prev => !prev); 
   };
 
   const handleCambiarEstado = async (usuario) => {

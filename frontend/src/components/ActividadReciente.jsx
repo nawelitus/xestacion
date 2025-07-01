@@ -1,6 +1,5 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-
 const formatearFecha = (fechaISO) => new Date(fechaISO).toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit', year: 'numeric' });
 
 const ActividadReciente = ({ actividades }) => {
@@ -11,7 +10,6 @@ const ActividadReciente = ({ actividades }) => {
       </div>
     );
   }
-
   return (
     <div className="bg-primario rounded-lg border border-borde">
         <h3 className="text-lg font-semibold p-4 border-b border-borde">Cierres Z Procesados Recientemente</h3>

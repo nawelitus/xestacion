@@ -72,9 +72,7 @@ const CierreDetalle = () => {
   if (!cierre) return null;
 
   const { cabecera, ventasCombustible, ventasShop, movimientosCaja, remitos } = cierre;
-
   const getMovimientosPorTipo = (tipo) => movimientosCaja.filter(m => m.tipo.toLowerCase() === tipo.toLowerCase());
-
   return (
     <div className="space-y-8">
       <div>
@@ -92,7 +90,6 @@ const CierreDetalle = () => {
         <TarjetaResumen titulo="Total a Rendir" valor={formatearMoneda(cabecera.total_a_rendir)} icono={<Hash />} />
         <TarjetaResumen titulo="Total Remitos" valor={formatearMoneda(cabecera.total_remitos)} icono={<ClipboardList />} />
         <TarjetaResumen titulo="Total Gastos" valor={formatearMoneda(cabecera.total_gastos)} icono={<ArrowDownRight />} />
-        {/* --- NUEVAS TARJETAS DE RESUMEN --- */}
         <TarjetaResumen titulo="Total Cupones" valor={formatearMoneda(cabecera.total_cupones)} icono={<CreditCard />} />
         <TarjetaResumen titulo="Total MercadoPago" valor={formatearMoneda(cabecera.total_mercadopago)} icono={<Send />} />
         <TarjetaResumen titulo="Total Tiradas" valor={formatearMoneda(cabecera.total_tiradas)} icono={<Users />} />

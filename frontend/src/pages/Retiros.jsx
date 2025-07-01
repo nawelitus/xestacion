@@ -6,7 +6,6 @@ import { Loader, AlertTriangle, Users, ChevronsRight, ArrowLeft, PiggyBank, File
 const formatearMoneda = (monto) => new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS' }).format(monto || 0);
 const formatearFecha = (fechaISO) => new Date(fechaISO).toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit', year: 'numeric' });
 
-// --- Componente para la Vista de Detalles ---
 const VistaDetalleEmpleado = ({ empleado, alVolver }) => {
     const [detalle, setDetalle] = useState([]);
     const [cargandoDetalle, setCargandoDetalle] = useState(true);
@@ -64,7 +63,6 @@ const VistaDetalleEmpleado = ({ empleado, alVolver }) => {
     );
 };
 
-// --- Componente Principal ---
 const Retiros = () => {
     const [resumen, setResumen] = useState([]);
     const [estaCargando, setEstaCargando] = useState(true);

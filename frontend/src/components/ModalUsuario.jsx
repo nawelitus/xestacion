@@ -2,13 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { crearUsuario, actualizarUsuario } from '../services/usuarioService';
 import { X, Loader } from 'lucide-react';
 
-// ================================================================
-// ARCHIVO: src/components/ModalUsuario.jsx (NUEVO)
-//
-// DESCRIPCIÓN:
-// Modal con el formulario para crear un nuevo usuario o editar
-// los datos de uno existente.
-// ================================================================
 
 const ModalUsuario = ({ usuario, alCerrar, alExito }) => {
   const esEdicion = Boolean(usuario);

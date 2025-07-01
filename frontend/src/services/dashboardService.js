@@ -1,5 +1,4 @@
 import api from './api';
-
 /**
  * Obtiene todos los datos consolidados para el dashboard.
  * @returns {Promise<object>} Un objeto con KPIs y actividad reciente.
