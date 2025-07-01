@@ -1,8 +1,11 @@
+// Contenido para: src/models/cajaDiariaModel.js
+
 import pool from '../config/db.js';
 import CierreModel from './cierreModel.js';
 
 const CajaDiariaModel = {
   async listarTodosParaCaja() {
+    // ... código existente sin cambios ...
     const [filas] = await pool.query(
       `SELECT id, numero_z, fecha_turno, total_a_rendir, caja_procesada 
        FROM cierres_z 
@@ -11,14 +14,9 @@ const CajaDiariaModel = {
     return filas;
   },
 
-  /**
-   * @MODIFICADO
-   * Obtiene todos los detalles de una caja diaria ya procesada.
-   * Se elimina la consulta a la tabla 'caja_diaria_billetera' que ya no existe.
-   */
   async obtenerDetalleProcesado(cierreId) {
+    // ... código existente sin cambios ...
     try {
-      // La consulta a la billetera ha sido eliminada del Promise.all
       const [
         detalleCierreBase,
         creditos,
@@ -33,8 +31,6 @@ const CajaDiariaModel = {
         return null;
       }
       
-      // El objeto devuelto ya no necesita una propiedad 'billetera' separada,
-      // porque sus datos ya están dentro de 'detalleCierreBase.cabecera'.
       return {
         cierre: detalleCierreBase,
         creditos: creditos[0],
@@ -48,6 +44,7 @@ const CajaDiariaModel = {
   },
 
   async procesarCaja(cierreId, datos) {
+    // ... código existente sin cambios ...
     const connection = await pool.getConnection();
     try {
       await connection.beginTransaction();
@@ -55,18 +52,11 @@ const CajaDiariaModel = {
       const { billetera, creditos, retiros } = datos;
       const cierreOriginal = (await connection.query('SELECT total_a_rendir FROM cierres_z WHERE id = ?', [cierreId]))[0][0];
       
- // ======================= LÓGICA DE CÁLCULO SINCRONIZADA =======================
       const totalRendirZ = Number(cierreOriginal.total_a_rendir) || 0;
       const totalCreditos = creditos.reduce((acc, c) => acc + c.importe, 0);
-      
       const diferenciaBilletera = (billetera.entregado || 0) - (billetera.recibido || 0);
-
-      // El total declarado es la suma de los créditos más la diferencia neta de la billetera.
       const totalDeclaradoFinal = totalCreditos + diferenciaBilletera;
-      
-      // La diferencia final es lo declarado menos lo que se debía rendir del Z.
       const diferenciaFinal = totalDeclaradoFinal - totalRendirZ;
-      // ===================== FIN DE LA LÓGICA SINCRONIZADA ======================
 
       const creditosAInsertar = creditos.filter(c => c.importe > 0).map(c => [cierreId, c.item, c.importe]);
       if (creditosAInsertar.length > 0) {
@@ -86,15 +76,46 @@ const CajaDiariaModel = {
            declarado_total_final = ?,
            diferencia_final = ?
          WHERE id = ?`,
-       // [billetera.recibido, billetera.entregado, totalDeclarado, diferenciaFinal, cierreId]
         [billetera.recibido, billetera.entregado, totalDeclaradoFinal, diferenciaFinal, cierreId]
-
       );
 
       await connection.commit();
     } catch (error) {
       await connection.rollback();
       throw new Error('Error en la base de datos al procesar la caja diaria.');
+    } finally {
+      connection.release();
+    }
+  },
+
+  // --- AÑADIR NUEVA FUNCIÓN ---
+  async deshacerProceso(cierreId) {
+    const connection = await pool.getConnection();
+    try {
+      await connection.beginTransaction();
+
+      // 1. Eliminar los créditos manuales asociados
+      await connection.query('DELETE FROM caja_diaria_creditos WHERE cierre_z_id = ?', [cierreId]);
+
+      // 2. Eliminar los retiros de personal asociados
+      await connection.query('DELETE FROM retiros_personal WHERE cierre_z_id = ?', [cierreId]);
+
+      // 3. Revertir el estado del Cierre Z
+      await connection.query(
+        `UPDATE cierres_z SET 
+           caja_procesada = 0,
+           declarado_billetera_recibido = NULL,
+           declarado_billetera_entregado = NULL,
+           declarado_total_final = NULL,
+           diferencia_final = NULL
+         WHERE id = ?`,
+        [cierreId]
+      );
+
+      await connection.commit();
+    } catch (error) {
+      await connection.rollback();
+      throw new Error('Error en la base de datos al deshacer el proceso de la caja.');
     } finally {
       connection.release();
     }

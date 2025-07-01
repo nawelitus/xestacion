@@ -15,7 +15,7 @@ import retiroRoutes from './routes/retiroRoutes.js';
 import empleadoRoutes from './routes/empleadoRoutes.js'; 
 import dashboardRoutes from './routes/dashboardRoutes.js'; 
 import usuarioRoutes from './routes/usuarioRoutes.js'; 
-
+import axionOnRoutes from './routes/axionOnRoutes.js'; 
 import cajaDiariaRoutes from './routes/cajaDiariaRoutes.js';
 // --- Configuración Inicial ---
 const envFile = process.env.NODE_ENV === 'production' ? '.env.produccion' : '.env.desarrollo';
@@ -51,7 +51,7 @@ app.use('/api/retiros', retiroRoutes);
 app.use('/api/caja', cajaDiariaRoutes); 
 app.use('/api/empleados', empleadoRoutes);
 app.use('/api/dashboard', dashboardRoutes);
-
+app.use('/api/axion-on', axionOnRoutes); 
 // --- Iniciar Servidor ---
 app.listen(PORT, () => {
   console.log(`🚀 Servidor corriendo en el puerto ${PORT}`);

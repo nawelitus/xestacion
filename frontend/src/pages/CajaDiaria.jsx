@@ -1,13 +1,16 @@
+// Contenido para: src/pages/CajaDiaria.jsx
+
 import React, { useState, useEffect, useCallback } from 'react';
-import { listarCierresParaCaja, obtenerDetalleCajaProcesada } from '../services/cajaDiariaService.js';
+import { listarCierresParaCaja, obtenerDetalleCajaProcesada, deshacerProcesoCaja } from '../services/cajaDiariaService.js';
+import useAuth from '../hooks/useAuth.js';
 import ModalCajaDiaria from '../components/ModalCajaDiaria';
-import ModalDetalleCaja from '../components/ModalDetalleCaja'; // <-- Importar nuevo modal
-import { Loader, AlertTriangle, Inbox, Calendar, Hash, CheckCircle, Eye } from 'lucide-react';
+import ModalDetalleCaja from '../components/ModalDetalleCaja';
+import { Loader, AlertTriangle, Inbox, Calendar, Hash, CheckCircle, Eye, Undo } from 'lucide-react';
 
 const formatearMoneda = (monto) => new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS' }).format(monto || 0);
 const formatearFecha = (fechaISO) => new Date(fechaISO).toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit', year: 'numeric' });
 
-const FilaCierre = ({ cierre, onProcesar, onVerDetalle }) => (
+const FilaCierre = ({ cierre, onProcesar, onVerDetalle, onDeshacer, esAdmin }) => (
     <li className="p-4 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
         <div>
             <div className="flex items-center gap-2">
@@ -22,19 +25,28 @@ const FilaCierre = ({ cierre, onProcesar, onVerDetalle }) => (
                 <span className="flex items-center gap-1.5"><Hash size={14} /> A rendir: {formatearMoneda(cierre.total_a_rendir)}</span>
             </div>
         </div>
-        {cierre.caja_procesada ? (
-            <button onClick={onVerDetalle} className="bg-gray-600 hover:bg-gray-700 text-white font-semibold px-4 py-2 rounded-md transition-colors self-start md:self-center flex items-center gap-2">
-                <Eye size={16}/> Ver Detalle
-            </button>
-        ) : (
-            <button onClick={onProcesar} className="bg-blue-600 hover:bg-blue-700 text-white font-semibold px-4 py-2 rounded-md transition-colors self-start md:self-center">
-                Procesar Caja
-            </button>
-        )}
+        <div className="flex items-center gap-2 self-start md:self-center">
+            {cierre.caja_procesada ? (
+                <button onClick={onVerDetalle} className="bg-gray-600 hover:bg-gray-700 text-white font-semibold px-4 py-2 rounded-md transition-colors flex items-center gap-2">
+                    <Eye size={16}/> Ver Detalle
+                </button>
+            ) : (
+                <button onClick={onProcesar} className="bg-blue-600 hover:bg-blue-700 text-white font-semibold px-4 py-2 rounded-md transition-colors">
+                    Procesar Caja
+                </button>
+            )}
+            {/* --- BOTÓN CONDICIONAL "DESHACER" --- */}
+            {cierre.caja_procesada && esAdmin && (
+              <button onClick={onDeshacer} title="Deshacer Proceso" className="bg-red-600 hover:bg-red-700 text-white font-semibold px-4 py-2 rounded-md transition-colors flex items-center gap-2">
+                <Undo size={16} /> Deshacer
+              </button>
+            )}
+        </div>
     </li>
 );
 
 const CajaDiaria = () => {
+  const { auth } = useAuth(); // Obtener datos de autenticación
   const [todosLosCierres, setTodosLosCierres] = useState([]);
   const [estaCargando, setEstaCargando] = useState(true);
   const [error, setError] = useState(null);
@@ -58,6 +70,18 @@ const CajaDiaria = () => {
 
   useEffect(() => { cargarCierres(); }, [cargarCierres]);
 
+  const handleDeshacer = async (cierreId, numeroZ) => {
+    if (window.confirm(`¿Estás seguro de que quieres deshacer el proceso del Cierre Z N° ${numeroZ}? Esta acción es irreversible y borrará los datos de conciliación asociados.`)) {
+      try {
+        await deshacerProcesoCaja(cierreId);
+        alert('El proceso se ha deshecho correctamente.');
+        cargarCierres(); // Recargar la lista para reflejar el cambio
+      } catch (err) {
+        alert('Error al intentar deshacer el proceso. Por favor, intenta de nuevo.');
+      }
+    }
+  };
+  
   const abrirModalProcesar = (cierre) => {
     setCierreSeleccionado(cierre);
     setModalProcesarAbierto(true);
@@ -105,8 +129,16 @@ const CajaDiaria = () => {
             <div>
                 <h2 className="text-xl font-semibold mb-4 text-green-500">Ya Procesados ({procesados.length})</h2>
                  {procesados.length > 0 ? (
-                    <div className="bg-primario rounded-lg border border-borde overflow-hidden max-h-[60vh] overflow-y-auto"><ul className="divide-y divide-borde">
-                        {procesados.map(c => <FilaCierre key={c.id} cierre={c} onVerDetalle={() => abrirModalDetalle(c.id)} />)}
+                    <div className="bg-primario rounded-lg border border-borde max-h-[60vh] overflow-y-auto"><ul className="divide-y divide-borde">
+                        {procesados.map(c => (
+                          <FilaCierre 
+                            key={c.id} 
+                            cierre={c} 
+                            onVerDetalle={() => abrirModalDetalle(c.id)} 
+                            onDeshacer={() => handleDeshacer(c.id, c.numero_z)}
+                            esAdmin={auth.rol === 'administrador'}
+                          />
+                        ))}
                     </ul></div>
                 ) : <p className="text-texto-secundario text-center p-8 bg-primario rounded-lg border border-borde">Aún no hay cajas procesadas.</p>}
             </div>

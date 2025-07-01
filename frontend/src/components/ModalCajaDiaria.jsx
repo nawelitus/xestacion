@@ -1,17 +1,19 @@
+// Contenido para: src/components/ModalCajaDiaria.jsx
+
 import React, { useState, useMemo, useEffect } from 'react';
 import { procesarCajaDiaria } from '../services/cajaDiariaService';
 import { obtenerTodosLosEmpleados } from '../services/empleadoService';
-import { X, Loader, Users, Banknote, Landmark, PlusCircle, Trash2 } from 'lucide-react';
+import { obtenerDetallePorId } from '../services/cierreService'; // <-- IMPORTANTE: Nuevo servicio importado
+import { X, Loader, Users, Banknote, Landmark, PlusCircle, Trash2, ChevronDown, FileText } from 'lucide-react';
 
 
 const formatearMoneda = (monto) => new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS' }).format(monto || 0);
 
+// --- Componente FilaCredito (sin cambios) ---
 const OPCIONES_CREDITO = ["TICKET CARD", "POSTNET INALAMBRICO 77", "POSTNET INALAMBRICO 51", "CREDITO PERSONAL"];
-
 const FilaCredito = ({ item, indice, actualizarCredito }) => {
   const [editandoItem, setEditandoItem] = useState(false);
   const esOpcionPredefinida = OPCIONES_CREDITO.includes(item.item);
-
   const handleSelectChange = (e) => {
     const valor = e.target.value;
     if (valor === "OTRO") {
@@ -22,25 +24,13 @@ const FilaCredito = ({ item, indice, actualizarCredito }) => {
       actualizarCredito(indice, 'item', valor);
     }
   };
-
   return (
     <tr className="hover:bg-secundario/50">
       <td className="p-2 border border-borde">
         {editandoItem ? (
-          <input
-            type="text"
-            value={item.item}
-            onChange={(e) => actualizarCredito(indice, 'item', e.target.value)}
-            onBlur={() => { if(item.item) setEditandoItem(false) }}
-            className="w-full bg-fondo p-1.5 rounded-md outline-none focus:ring-1 focus:ring-blue-500 text-texto-principal border border-borde"
-            autoFocus
-          />
+          <input type="text" value={item.item} onChange={(e) => actualizarCredito(indice, 'item', e.target.value)} onBlur={() => { if(item.item) setEditandoItem(false) }} className="w-full bg-fondo p-1.5 rounded-md outline-none focus:ring-1 focus:ring-blue-500 text-texto-principal border border-borde" autoFocus/>
         ) : (
-          <select 
-            value={esOpcionPredefinida ? item.item : 'OTRO'} 
-            onChange={handleSelectChange} 
-            className="w-full bg-fondo p-1.5 rounded-md text-texto-principal border border-borde focus:ring-1 focus:ring-blue-500 outline-none appearance-none"
-          >
+          <select value={esOpcionPredefinida ? item.item : 'OTRO'} onChange={handleSelectChange} className="w-full bg-fondo p-1.5 rounded-md text-texto-principal border border-borde focus:ring-1 focus:ring-blue-500 outline-none appearance-none">
             <option value="" disabled>Seleccionar...</option>
             {OPCIONES_CREDITO.map(op => <option key={op} value={op}>{op}</option>)}
             <option value="OTRO">{esOpcionPredefinida ? 'Otro (especificar)' : item.item || 'Otro (especificar)'}</option>
@@ -48,16 +38,63 @@ const FilaCredito = ({ item, indice, actualizarCredito }) => {
         )}
       </td>
       <td className="p-2 border border-borde">
-        <input
-          type="number"
-          value={item.importe}
-          onChange={(e) => actualizarCredito(indice, 'importe', e.target.value)}
-          placeholder="0.00"
-          className="w-full bg-fondo p-1.5 rounded-md outline-none focus:ring-1 focus:ring-blue-500 text-right text-texto-principal border border-borde"
-        />
+        <input type="number" value={item.importe} onChange={(e) => actualizarCredito(indice, 'importe', e.target.value)} placeholder="0.00" className="w-full bg-fondo p-1.5 rounded-md outline-none focus:ring-1 focus:ring-blue-500 text-right text-texto-principal border border-borde"/>
       </td>
     </tr>
   );
+};
+
+
+// --- NUEVO: Componente Acordeón ---
+const Acordion = ({ titulo, children }) => {
+    const [abierto, setAbierto] = useState(false);
+    return (
+        <div className="border border-borde rounded-lg">
+            <button onClick={() => setAbierto(!abierto)} className="w-full flex justify-between items-center p-3 bg-secundario/30 hover:bg-secundario/60">
+                <span className="font-semibold text-texto-principal flex items-center gap-2">{titulo}</span>
+                <ChevronDown size={20} className={`transition-transform duration-300 ${abierto ? 'rotate-180' : ''}`} />
+            </button>
+            {abierto && <div className="p-4 border-t border-borde">{children}</div>}
+        </div>
+    );
+};
+
+// --- NUEVO: Componente para mostrar el detalle del Cierre Z ---
+const VisorCierreZ = ({ cierreId }) => {
+    const [detalle, setDetalle] = useState(null);
+    const [cargando, setCargando] = useState(false);
+    const [error, setError] = useState('');
+
+    const cargarDetalle = async () => {
+        setCargando(true);
+        setError('');
+        try {
+            const data = await obtenerDetallePorId(cierreId);
+            setDetalle(data);
+        } catch (err) {
+            setError('No se pudo cargar el detalle del Cierre Z.');
+        } finally {
+            setCargando(false);
+        }
+    };
+
+    if (!detalle && !cargando && !error) {
+        return <button onClick={cargarDetalle} className="text-blue-500 hover:underline">Cargar y ver detalle del Cierre Z</button>;
+    }
+    if (cargando) return <Loader className="animate-spin" />;
+    if (error) return <p className="text-red-500">{error}</p>;
+
+    return (
+        <div className="text-xs space-y-3">
+            {Object.entries(detalle.cabecera).map(([key, value]) => <div key={key}><strong>{key}:</strong> {String(value)}</div>)}
+            <h4 className="font-bold mt-2">Ventas Combustible:</h4>
+            {detalle.ventasCombustible.map((v, i) => <div key={i}>{v.producto_nombre}: {v.litros} Lts - {formatearMoneda(v.importe)}</div>)}
+            <h4 className="font-bold mt-2">Ventas Shop:</h4>
+            {detalle.ventasShop.map((v, i) => <div key={i}>{v.producto_nombre}: {v.cantidad} Un. - {formatearMoneda(v.importe)}</div>)}
+            <h4 className="font-bold mt-2">Movimientos Caja:</h4>
+            {detalle.movimientosCaja.map((m, i) => <div key={i}>{m.tipo} ({m.descripcion}): {formatearMoneda(m.monto)}</div>)}
+        </div>
+    );
 };
 
 
@@ -159,13 +196,13 @@ const ModalCajaDiaria = ({ cierre, alCerrar, alProcesarExito }) => {
                     <div className="space-y-2 mt-2">
                         <div>
                             <label className="text-xs text-texto-secundario">Dinero Recibido</label>
-                            <input type="number" value={billetera.recibido} onChange={e => setBilletera({...billetera, recibido: e.target.value})} className="w-full bg-secundario p-1.5 rounded-md outline-none focus:ring-1 focus:ring-blue-500 text-texto-principal border border-borde" />
+                            <input type="number" value={billetera.recibido} onChange={e => setBilletera({...billetera, recibido: e.target.value})} className="-full bg-fondo p-1.5 rounded-md outline-none focus:ring-1 focus:ring-blue-500 text-texto-principal border border-borde" />
                         </div>
                         <div>
                             <label className="text-xs text-texto-secundario">Dinero Entregado</label>
-                            <input type="number" value={billetera.entregado} onChange={e => setBilletera({...billetera, entregado: e.target.value})} className="w-full bg-secundario p-1.5 rounded-md outline-none focus:ring-1 focus:ring-blue-500 text-texto-principal border border-borde" />
+                            <input type="number" value={billetera.entregado} onChange={e => setBilletera({...billetera, entregado: e.target.value})} className="-full bg-fondo p-1.5 rounded-md outline-none focus:ring-1 focus:ring-blue-500 text-texto-principal border border-borde" />
                         </div>
-                        <div className="text-xs pt-1 text-texto-secundario">Diferencia Neta: {formatearMoneda((Number(billetera.entregado) || 0) - (Number(billetera.recibido) || 0))}</div>
+                        <div className="pt-1 text-texto-secundario">Diferencia Neta: {formatearMoneda((Number(billetera.entregado) || 0) - (Number(billetera.recibido) || 0))}</div>
                     </div>
                 </div>
                  <div>
@@ -190,6 +227,10 @@ const ModalCajaDiaria = ({ cierre, alCerrar, alProcesarExito }) => {
                 </div>
             </div>
           </div>
+          {/* --- INTEGRACIÓN DEL ACORDEÓN --- */}
+          <Acordion titulo={<><FileText size={16}/> Ver Detalle del Cierre Z Original</>}>
+              <VisorCierreZ cierreId={cierre.id} />
+          </Acordion>
         </div>
 
         <div className="p-4 bg-secundario/50 mt-auto border-t border-borde">

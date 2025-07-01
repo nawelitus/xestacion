@@ -16,7 +16,7 @@ import ClienteDetalle from './pages/ClienteDetalle.jsx';
 import Retiros from './pages/Retiros.jsx';
 import GestionUsuarios from './pages/GestionUsuarios.jsx';
 import CierresZ from './pages/CierresZ.jsx';
-
+import AxionOn from './pages/AxionOn.jsx';
 // ================================================================
 // ARCHIVO: src/App.jsx (Versión Final Completa)
 //
@@ -59,7 +59,7 @@ function App() {
               <Route path="/caja-diaria" element={<CajaDiaria />} />
               <Route path="/cierre/:id" element={<CierreDetalle />} />
               <Route path="/cierres" element={<CierresZ />} />
-
+  <Route path="/axion-on" element={<AxionOn />} /> 
               <Route path="/cuentas-corrientes" element={<CuentasCorrientes />} />
               <Route path="/cuentas-corrientes/:id" element={<ClienteDetalle />} />
               <Route path="/adelantos" element={<Retiros />} />

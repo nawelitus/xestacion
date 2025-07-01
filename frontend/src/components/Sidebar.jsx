@@ -3,7 +3,7 @@ import { NavLink, useNavigate } from 'react-router-dom';
 import useAuth from '../hooks/useAuth.js';
 import {
   LayoutDashboard, Box, Users, CreditCard, LogOut, X,
-  UserCog, HandCoins, FileText, Menu
+  UserCog, HandCoins, FileText, Menu, Fuel
 } from 'lucide-react';
 
 const Sidebar = ({ estaAbierto, alCerrar }) => {
@@ -50,7 +50,9 @@ const Sidebar = ({ estaAbierto, alCerrar }) => {
 
       <nav className="flex-1 px-4 py-6 space-y-2">
         <NavItem to="/dashboard" icon={<LayoutDashboard size={20} />}>Dashboard</NavItem>
+        <NavItem to="/axion-on" icon={<Fuel size={20} />}>Axion ON</NavItem> 
         <NavItem to="/caja-diaria" icon={<Box size={20} />}>Caja Diaria</NavItem>
+
         <NavItem to="/cuentas-corrientes" icon={<CreditCard size={20} />}>Cuentas Corrientes</NavItem>
         <NavItem to="/adelantos" icon={<HandCoins size={20} />}>Adelantos</NavItem>
         <NavItem to="/cierres" icon={<FileText size={20} />}>Cierres Z</NavItem>
