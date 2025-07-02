@@ -18,7 +18,7 @@ const DashboardModel = {
           (SELECT COALESCE(SUM(total_bruto), 0) FROM cierres_z WHERE fecha_turno = CURDATE() - INTERVAL 1 DAY) AS ventas_ayer,
           (SELECT COALESCE(SUM(total_mercadopago), 0) FROM cierres_z WHERE fecha_turno = CURDATE()) AS mercadopago_hoy,
           (SELECT COALESCE(SUM(vs.importe), 0) FROM ventas_shop_z vs JOIN cierres_z cz ON vs.cierre_z_id = cz.id WHERE cz.fecha_turno = CURDATE()) AS shop_hoy,
-          (SELECT COALESCE(SUM(total_faltante), 0) FROM cierres_z WHERE MONTH(fecha_turno) = MONTH(CURDATE()) AND YEAR(fecha_turno) = YEAR(CURDATE())) AS faltante_mes
+          (SELECT COALESCE(SUM(diferencia_final), 0) FROM cierres_z WHERE MONTH(fecha_turno) = MONTH(CURDATE()) AND YEAR(fecha_turno) = YEAR(CURDATE())) AS faltante_mes
       `;
 
       const [
