@@ -48,6 +48,17 @@ const RetiroModel = {
       console.error("Error en el modelo al listar retiros:", error);
       throw new Error('Error al consultar los retiros en la base de datos.');
     }
+  },
+
+async cancelar(id) {
+    const sql = "UPDATE retiros_personal SET estado = 'inactivo' WHERE id = ?";
+    try {
+      const [resultado] = await pool.query(sql, [id]);
+      return resultado;
+    } catch (error) {
+      console.error(`Error en el modelo al cancelar el adelanto con ID ${id}:`, error);
+      throw new Error('Error en la base de datos al cancelar el adelanto.');
+    }
   }
 };
 

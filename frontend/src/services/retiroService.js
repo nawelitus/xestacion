@@ -26,3 +26,18 @@ export const obtenerRetiros = async (filtros = {}) => {
     throw error;
   }
 };
+// --- AÑADIR NUEVA FUNCIÓN ---
+/**
+ * @description Llama a la API para cancelar un adelanto de personal específico.
+ * @param {number} id - El ID del adelanto a cancelar.
+ * @returns {Promise<object>} La respuesta de la API.
+ */
+export const cancelarAdelanto = async (id) => {
+  try {
+    const { data } = await api.patch(`/retiros/cancelar/${id}`);
+    return data;
+  } catch (error) {
+    console.error(`Error al cancelar el adelanto con ID ${id}:`, error);
+    throw error;
+  }
+};

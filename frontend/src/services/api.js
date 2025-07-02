@@ -1,21 +1,19 @@
+// Contenido para: src/services/api.js
+
 import axios from 'axios';
 
 const baseURL = import.meta.env.PROD
   ? '/api'  
   : 'http://localhost:4000/api'; 
 
-const api = axios.create({ baseURL });
+// --- CAMBIOS REALIZADOS ---
+const api = axios.create({
+  baseURL,
+  withCredentials: true // 1. PERMITE EL ENVÍO DE COOKIES EN CADA PETICIÓN
+});
 
-// Interceptor para añadir token
-api.interceptors.request.use(
-  (config) => {
-    const token = localStorage.getItem('token');
-    if (token) {
-      config.headers['Authorization'] = `Bearer ${token}`;
-    }
-    return config;
-  },
-  (error) => Promise.reject(error)
-);
+// 2. EL INTERCEPTOR QUE AÑADÍA EL TOKEN MANUALMENTE SE ELIMINA.
+// La autenticación ahora es manejada automáticamente por el navegador
+// a través de la cookie httpOnly.
 
-export default api;//*
+export default api;

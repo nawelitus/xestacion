@@ -1,16 +1,7 @@
-import React, { createContext, useState, useEffect } from 'react';
-import { jwtDecode } from 'jwt-decode';
-import api from '../services/api';
+// Contenido para: src/context/AuthContext.jsx
 
-// ================================================================
-// ARCHIVO: src/context/AuthContext.jsx (Versión Corregida)
-//
-// CAMBIOS:
-// 1. Se renombra el estado `usuario` a `auth` para consistencia.
-// 2. Se renombra la función `logout` a `cerrarSesion`.
-// 3. El proveedor ahora exporta `auth` y `cerrarSesion`, que es lo que
-//    los otros componentes (Sidebar, RutaProtegida) esperan.
-// ================================================================
+import React, { createContext, useState, useEffect } from 'react';
+import api from '../services/api';
 
 const AuthContext = createContext();
 
@@ -18,51 +9,51 @@ export const AuthProvider = ({ children }) => {
   const [auth, setAuth] = useState(null);
   const [cargando, setCargando] = useState(true);
 
+  // --- LÓGICA DE AUTENTICACIÓN COMPLETAMENTE NUEVA ---
   useEffect(() => {
-    const autenticarUsuario = () => {
-      const token = localStorage.getItem('token');
-      if (token) {
-        try {
-          const usuarioDecodificado = jwtDecode(token);
-          // Almacenamos el payload del usuario en el estado 'auth'
-          setAuth(usuarioDecodificado.usuario);
-        } catch (error) {
-          console.error("Token inválido, se removerá:", error);
-          localStorage.removeItem('token');
-          setAuth(null);
-        }
+    const verificarSesion = async () => {
+      try {
+        // Al cargar la app, llamamos al nuevo endpoint /verify.
+        // Si la cookie del token es válida, el backend nos devolverá los datos del usuario.
+        const { data } = await api.get('/auth/verify');
+        setAuth(data); // Guardamos los datos del usuario en el estado.
+      } catch (error) {
+        // Si hay un error (ej: token no válido, expirado o inexistente),
+        // nos aseguramos de que el estado del usuario quede como nulo.
+        console.log('No hay sesión activa o el token no es válido.');
+        setAuth(null);
+      } finally {
+        // Marcamos la carga como finalizada para que la app se renderice.
+        setCargando(false);
       }
-      setCargando(false);
     };
     
-    autenticarUsuario();
+    verificarSesion();
   }, []);
 
   const login = async (dni, password) => {
-    try {
-      const respuesta = await api.post('/auth/login', { dni, password });
-      const { token } = respuesta.data;
-      
-      localStorage.setItem('token', token);
-      
-      const usuarioDecodificado = jwtDecode(token);
-      setAuth(usuarioDecodificado.usuario);
-
-    } catch (error) {
-      console.error("Error en la función de login del contexto:", error);
-      throw error;
-    }
+    // La petición de login ahora devuelve solo los datos del usuario.
+    // La cookie se establece automáticamente en el backend.
+    const { data } = await api.post('/auth/login', { dni, password });
+    setAuth(data); // Guardamos los datos del usuario en el estado local.
   };
 
-  const cerrarSesion = () => {
-    localStorage.removeItem('token');
-    setAuth(null);
+  const cerrarSesion = async () => {
+    try {
+      // Llamamos al backend para que elimine la cookie de sesión.
+      await api.post('/auth/logout');
+      setAuth(null); // Limpiamos el estado del usuario en el frontend.
+    } catch (error) {
+      console.error("Error al cerrar sesión:", error);
+      // Forzamos la limpieza del estado del usuario incluso si hay un error.
+      setAuth(null); 
+    }
   };
 
   return (
     <AuthContext.Provider value={{ auth, cargando, login, cerrarSesion }}>
-      {/* Prevenimos que la app se renderice antes de verificar el token */}
-      {!cargando && children}
+      {/* Ya no usamos !cargando && children, el componente RutaProtegida maneja esto */}
+      {children}
     </AuthContext.Provider>
   );
 };

@@ -48,9 +48,11 @@ const EmpleadoModel = {
    * @MODIFICADO
    * Obtiene una lista detallada de todos los retiros manuales de un empleado.
    */
-  async obtenerDetalleRetirosPorNombre(nombreEmpleado) {
+ async obtenerDetalleRetirosPorNombre(nombreEmpleado) {
     const sql = `
       SELECT 
+          id,
+          estado,
           'Adelanto Manual' as origen, 
           fecha_registro as fecha, 
           monto, 

@@ -1,9 +1,11 @@
+// Contenido para: src/pages/Dashboard.jsx
+
 import React, { useState, useEffect, useCallback } from 'react';
 import useAuth from '../hooks/useAuth';
 import { obtenerDatosDashboard } from '../services/dashboardService';
 import SubirCierre from '../components/SubirCierre';
 import ActividadReciente from '../components/ActividadReciente'; 
-import { Loader, AlertTriangle, ArrowUpRight, ArrowDownRight, Users, FileText } from 'lucide-react';
+import { Loader, AlertTriangle, ArrowUpRight, ArrowDownRight, Users, ShoppingCart, Smartphone, CalendarDays, AlertCircle } from 'lucide-react';
 
 const formatearMoneda = (monto) => new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS' }).format(monto || 0);
 
@@ -20,14 +22,15 @@ const TarjetaKPI = ({ titulo, valor, icono, color }) => (
 );
 
 const Dashboard = () => {
-    const { usuario } = useAuth();
+    const { auth } = useAuth(); // Se cambia 'usuario' por 'auth' para consistencia
     const [datos, setDatos] = useState(null);
     const [estaCargando, setEstaCargando] = useState(true);
     const [error, setError] = useState(null);
 
     const cargarDatos = useCallback(async () => {
         try {
-            if (!datos) setEstaCargando(true);
+            // No es necesario comprobar 'datos' aquí, siempre recargamos al llamar
+            setEstaCargando(true);
             const data = await obtenerDatosDashboard();
             setDatos(data);
         } catch (err) {
@@ -35,11 +38,11 @@ const Dashboard = () => {
         } finally {
             setEstaCargando(false);
         }
-    }, [datos]); 
+    }, []); 
 
     useEffect(() => {
         cargarDatos();
-    }, []); // La llamada inicial solo se hace una vez
+    }, [cargarDatos]);
 
     if (estaCargando) {
         return <div className="flex justify-center items-center h-64"><Loader className="animate-spin text-blue-500" size={48} /></div>;
@@ -52,10 +55,11 @@ const Dashboard = () => {
     return (
         <div className="space-y-8">
             <div>
-                <h1 className="text-3xl font-bold text-texto-principal">¡Hola, {usuario?.nombre}!</h1>
+                <h1 className="text-3xl font-bold text-texto-principal">¡Hola, {auth?.nombre}!</h1>
                 <p className="text-texto-secundario mt-1">Bienvenido al panel de control de NaWeL.</p>
             </div>
 
+            {/* --- CAMBIO: El grid ahora mostrará 8 tarjetas y se ajustará en pantallas extra grandes --- */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                 <TarjetaKPI 
                     titulo="Ventas (últimos 7 días)" 
@@ -80,6 +84,31 @@ const Dashboard = () => {
                     valor={formatearMoneda(datos.kpis.deuda_total)} 
                     icono={<ArrowDownRight />}
                     color="bg-orange-500/20 text-orange-400"
+                />
+                {/* --- NUEVAS TARJETAS --- */}
+                <TarjetaKPI 
+                    titulo="Ventas de Ayer" 
+                    valor={formatearMoneda(datos.kpis.ventas_ayer)} 
+                    icono={<CalendarDays />} 
+                    color="bg-purple-500/20 text-purple-400"
+                />
+                <TarjetaKPI 
+                    titulo="MercadoPago (Hoy)" 
+                    valor={formatearMoneda(datos.kpis.mercadopago_hoy)} 
+                    icono={<Smartphone />}
+                    color="bg-sky-500/20 text-sky-400"
+                />
+                <TarjetaKPI 
+                    titulo="Ventas del Shop (Hoy)" 
+                    valor={formatearMoneda(datos.kpis.shop_hoy)} 
+                    icono={<ShoppingCart />}
+                    color="bg-pink-500/20 text-pink-400"
+                />
+                <TarjetaKPI 
+                    titulo="Faltante (Mes Actual)" 
+                    valor={formatearMoneda(datos.kpis.faltante_mes)} 
+                    icono={<AlertCircle />}
+                    color="bg-amber-500/20 text-amber-400"
                 />
             </div>
             

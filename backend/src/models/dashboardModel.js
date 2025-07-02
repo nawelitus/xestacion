@@ -1,31 +1,31 @@
+// Contenido para: src/models/dashboardModel.js
+
 import pool from '../config/db.js';
 
 const DashboardModel = {
   async obtenerDatosDashboard() {
     try {
+      // --- CAMBIO: Unificamos todas las consultas de KPIs en una sola para mayor eficiencia ---
+      const queryKpis = `
+        SELECT
+          -- KPIs existentes
+          (SELECT COALESCE(SUM(total_bruto), 0) FROM cierres_z WHERE fecha_turno >= CURDATE() - INTERVAL 7 DAY) AS ventas_semana,
+          (SELECT COUNT(id) FROM clientes) AS total_clientes,
+          (SELECT COALESCE(SUM(saldo_actual), 0) FROM vista_saldos_cta_cte) AS deuda_total,
+          (SELECT COALESCE(SUM(monto), 0) FROM retiros_personal WHERE MONTH(fecha_registro) = MONTH(CURDATE()) AND YEAR(fecha_registro) = YEAR(CURDATE())) AS retiros_mes_actual,
+          
+          -- KPIs NUEVOS
+          (SELECT COALESCE(SUM(total_bruto), 0) FROM cierres_z WHERE fecha_turno = CURDATE() - INTERVAL 1 DAY) AS ventas_ayer,
+          (SELECT COALESCE(SUM(total_mercadopago), 0) FROM cierres_z WHERE fecha_turno = CURDATE()) AS mercadopago_hoy,
+          (SELECT COALESCE(SUM(vs.importe), 0) FROM ventas_shop_z vs JOIN cierres_z cz ON vs.cierre_z_id = cz.id WHERE cz.fecha_turno = CURDATE()) AS shop_hoy,
+          (SELECT COALESCE(SUM(total_faltante), 0) FROM cierres_z WHERE MONTH(fecha_turno) = MONTH(CURDATE()) AND YEAR(fecha_turno) = YEAR(CURDATE())) AS faltante_mes
+      `;
+
       const [
-        resumenSemanal,
-        kpisGenerales,
-        retirosMes,
+        kpisResult,
         actividadReciente
       ] = await Promise.all([
-        pool.query(`
-          SELECT
-            COALESCE(SUM(total_bruto), 0) AS ventas_semana,
-            COUNT(id) AS cierres_semana
-          FROM cierres_z
-          WHERE fecha_turno >= CURDATE() - INTERVAL 7 DAY
-        `),
-        pool.query(`
-          SELECT
-            (SELECT COALESCE(SUM(saldo_actual), 0) FROM vista_saldos_cta_cte) AS deuda_total,
-            (SELECT COUNT(id) FROM clientes) AS total_clientes
-        `),
-        pool.query(`
-          SELECT COALESCE(SUM(monto), 0) AS retiros_mes_actual
-          FROM retiros_personal
-          WHERE MONTH(fecha_registro) = MONTH(CURDATE()) AND YEAR(fecha_registro) = YEAR(CURDATE())
-        `),
+        pool.query(queryKpis),
         pool.query(`
           SELECT 
             cz.id, cz.numero_z, cz.fecha_turno, cz.total_a_rendir, u.nombre_completo AS usuario_carga_nombre
@@ -36,14 +36,9 @@ const DashboardModel = {
         `)
       ]);
 
+      // Devolvemos un solo objeto con todos los KPIs
       return {
-        kpis: {
-          ventas_semana: resumenSemanal[0][0].ventas_semana,
-          cierres_semana: resumenSemanal[0][0].cierres_semana,
-          deuda_total: kpisGenerales[0][0].deuda_total,
-          total_clientes: kpisGenerales[0][0].total_clientes,
-          retiros_mes_actual: retirosMes[0][0].retiros_mes_actual
-        },
+        kpis: kpisResult[0][0],
         actividadReciente: actividadReciente[0]
       };
 

@@ -1,24 +1,48 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
+import useAuth from '../hooks/useAuth.js';
 import { obtenerResumenDeRetiros, obtenerDetalleDeRetiros } from '../services/empleadoService.js';
-import { Loader, AlertTriangle, Users, ChevronsRight, ArrowLeft, PiggyBank, FileText, Calendar } from 'lucide-react';
+import { cancelarAdelanto } from '../services/retiroService.js';
+import { Loader, AlertTriangle, Users, ChevronsRight, ArrowLeft, Trash2, FileText, Calendar } from 'lucide-react';
 
 const formatearMoneda = (monto) => new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS' }).format(monto || 0);
 const formatearFecha = (fechaISO) => new Date(fechaISO).toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit', year: 'numeric' });
 
 const VistaDetalleEmpleado = ({ empleado, alVolver }) => {
+    const { auth } = useAuth(); // 1. OBTENER DATOS DE AUTENTICACIÓN
     const [detalle, setDetalle] = useState([]);
     const [cargandoDetalle, setCargandoDetalle] = useState(true);
 
-    useEffect(() => {
-        const cargarDetalle = async () => {
-            setCargandoDetalle(true);
+    // Se envuelve en useCallback para poder llamarla desde el handler de cancelar
+    const cargarDetalle = useCallback(async () => {
+        if (!cargandoDetalle) setCargandoDetalle(true); // Mostrar loader al recargar
+        try {
             const datos = await obtenerDetalleDeRetiros(empleado.nombre_completo);
             setDetalle(datos);
+        } catch (error) {
+            console.error("Error al cargar detalles de retiros", error);
+            alert("No se pudieron recargar los detalles.");
+        } finally {
             setCargandoDetalle(false);
-        };
+        }
+    }, [empleado.nombre_completo, cargandoDetalle]);
+
+    useEffect(() => {
         cargarDetalle();
-    }, [empleado]);
+    }, [empleado.nombre_completo]); // Se ejecuta solo cuando cambia el empleado
+
+    // 2. FUNCIÓN PARA MANEJAR LA CANCELACIÓN
+    const handleCancelar = async (adelantoId) => {
+        if (window.confirm('¿Estás seguro de que quieres cancelar este adelanto? Esta acción cambia su estado a "inactivo".')) {
+            try {
+                await cancelarAdelanto(adelantoId);
+                alert('Adelanto cancelado con éxito.');
+                cargarDetalle(); // Recargar la lista para reflejar el cambio
+            } catch (error) {
+                alert('Error al cancelar el adelanto. Inténtalo de nuevo.');
+            }
+        }
+    };
 
     return (
         <div className="space-y-4">
@@ -36,24 +60,39 @@ const VistaDetalleEmpleado = ({ empleado, alVolver }) => {
                     <table className="w-full text-sm">
                         <thead className="text-left text-texto-secundario uppercase">
                             <tr>
-                                <th className="p-3">Fecha de Registro</th>
-                                <th className="p-3">Concepto</th>
+                                <th className="p-3">Fecha</th>
                                 <th className="p-3 text-right">Monto</th>
-                                <th className="p-3 text-center">Origen del Adelanto</th>
+                                <th className="p-3 text-center">Estado</th>
+                                <th className="p-3 text-center">Origen</th>
+                                {/* 3. COLUMNA EXTRA PARA ADMINISTRADORES */}
+                                {auth.rol === 'administrador' && <th className="p-3 text-center">Acción</th>}
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-borde">
-                            {detalle.map((item, index) => (
-                                <tr key={index}>
+                            {detalle.map((item) => (
+                                <tr key={item.id} className={`${item.estado === 'inactivo' ? 'bg-red-900/20 opacity-50' : 'hover:bg-secundario/30'}`}>
                                     <td className="p-3 whitespace-nowrap">{formatearFecha(item.fecha)}</td>
-                                    <td className="p-3 text-texto-secundario">{item.concepto}</td>
                                     <td className="p-3 text-right font-semibold">{formatearMoneda(item.monto)}</td>
                                     <td className="p-3 text-center">
-                                       {/* --- ÚNICO CAMBIO AQUÍ --- */}
-                                       <Link to={`/cierre/${item.cierre_z_id}`} className="text-blue-400 hover:text-blue-300 hover:underline inline-flex items-center gap-1.5" title="Ver detalle del Cierre Z de origen">
+                                        <span className={`px-2 py-1 text-xs font-bold rounded-full ${item.estado === 'activo' ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'}`}>
+                                            {item.estado}
+                                        </span>
+                                    </td>
+                                    <td className="p-3 text-center">
+                                       <Link to={`/cierre/${item.cierre_z_id}`} className="text-blue-400 hover:text-blue-300 hover:underline inline-flex items-center gap-1.5" title="Ver Cierre Z de origen">
                                             <FileText size={14}/> Ver Origen
                                        </Link>
                                     </td>
+                                    {/* 4. BOTÓN DE CANCELAR CONDICIONAL */}
+                                    {auth.rol === 'administrador' && (
+                                        <td className="p-3 text-center">
+                                            {item.estado === 'activo' && (
+                                                <button onClick={() => handleCancelar(item.id)} className="text-red-400 hover:text-red-300" title="Cancelar Adelanto">
+                                                    <Trash2 size={16}/>
+                                                </button>
+                                            )}
+                                        </td>
+                                    )}
                                 </tr>
                             ))}
                         </tbody>

@@ -15,5 +15,9 @@ router.get(
   autorizarRol(['administrador', 'editor']), 
   RetiroController.listarRetiros
 );
-
+router.patch(
+  '/cancelar/:id',
+  autorizarRol(['administrador']),
+  RetiroController.cancelarAdelanto
+);
 export default router;
