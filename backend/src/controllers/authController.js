@@ -36,7 +36,7 @@ const AuthController = {
 
       // 1. CREAR EL PAYLOAD Y EL TOKEN (LA DURACIÓN YA LA HABÍAMOS CAMBIADO)
       const payload = { id: usuario.id, rol: usuario.rol, nombre: usuario.nombre_completo };
-      const token = jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: '20m' });
+      const token = jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: '40m' });
 
       // 2. ESTABLECER EL TOKEN EN UNA COOKIE SEGURA
       res.cookie('token', token, {

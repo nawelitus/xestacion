@@ -11,7 +11,7 @@ const formatearMoneda = (monto) => new Intl.NumberFormat('es-AR', { style: 'curr
 const formatearFecha = (fechaISO) => new Date(fechaISO).toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit', year: 'numeric' });
 
 const FilaCierre = ({ cierre, onProcesar, onVerDetalle, onDeshacer, esAdmin }) => (
-    <li className="p-4 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+    <li className="p-4 flex flex-col md:flex-row md:items-center md:justify-between gap-2">
         <div>
             <div className="flex items-center gap-2">
                 {cierre.caja_procesada ? 
@@ -20,24 +20,23 @@ const FilaCierre = ({ cierre, onProcesar, onVerDetalle, onDeshacer, esAdmin }) =
                 }
                 <p className="font-bold text-texto-principal">Cierre Z N° {cierre.numero_z}</p>
             </div>
-            <div className="flex items-center gap-4 text-sm text-texto-secundario mt-1 pl-7">
+            <div className="flex items-center gap-4 text-sm text-texto-secundario mt-1 pl-6">
                 <span className="flex items-center gap-1.5"><Calendar size={14} /> {formatearFecha(cierre.fecha_turno)}</span>
                 <span className="flex items-center gap-1.5"><Hash size={14} /> A rendir: {formatearMoneda(cierre.total_a_rendir)}</span>
             </div>
         </div>
         <div className="flex items-center gap-2 self-start md:self-center">
             {cierre.caja_procesada ? (
-                <button onClick={onVerDetalle} className="bg-gray-600 hover:bg-gray-700 text-white font-semibold px-4 py-2 rounded-md transition-colors flex items-center gap-2">
-                    <Eye size={16}/> Ver Detalle
+                <button onClick={onVerDetalle} className="bg-gray-700 hover:bg-gray-900 text-white font-semibold px-2 py-1 rounded-md transition-colors flex items-center gap-1">
+                    <Eye size={16}/> Detalle
                 </button>
             ) : (
-                <button onClick={onProcesar} className="bg-blue-600 hover:bg-blue-700 text-white font-semibold px-4 py-2 rounded-md transition-colors">
+                <button onClick={onProcesar} className="bg-blue-500 hover:bg-blue-700 text-white font-semibold px-2 py-1 rounded-md transition-colors">
                     Procesar Caja
                 </button>
             )}
-            {/* --- BOTÓN CONDICIONAL "DESHACER" --- */}
             {cierre.caja_procesada && esAdmin && (
-              <button onClick={onDeshacer} title="Deshacer Proceso" className="bg-red-600 hover:bg-red-700 text-white font-semibold px-4 py-2 rounded-md transition-colors flex items-center gap-2">
+              <button onClick={onDeshacer} title="Deshacer Proceso" className="bg-red-900 hover:bg-red-700 text-white font-semibold px-2 py-1 rounded-md transition-colors flex items-center gap-1">
                 <Undo size={16} /> Deshacer
               </button>
             )}
