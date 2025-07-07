@@ -7,7 +7,8 @@ import dotenv from 'dotenv';
 
 // Cargar variables de entorno según el ambiente
 const envFile = process.env.NODE_ENV === 'production' ? '.env.produccion' : '.env.desarrollo';
-dotenv.config({ path: `./${envFile}` });
+//dotenv.config({ path: `./${envFile}` });
+dotenv.config();
 
 
 const pool = mysql.createPool({

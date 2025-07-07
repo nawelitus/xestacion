@@ -1,16 +1,21 @@
-// Contenido para: src/pages/CajaDiaria.jsx
+// Contenido ACTUALIZADO para: src/pages/CajaDiaria.jsx
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { listarCierresParaCaja, obtenerDetalleCajaProcesada, deshacerProcesoCaja } from '../services/cajaDiariaService.js';
+// NUEVA FUNCIONALIDAD: Importar el servicio de eliminación
+import { eliminarCierrePorId } from '../services/cierreService.js';
 import useAuth from '../hooks/useAuth.js';
 import ModalCajaDiaria from '../components/ModalCajaDiaria';
 import ModalDetalleCaja from '../components/ModalDetalleCaja';
-import { Loader, AlertTriangle, Inbox, Calendar, Hash, CheckCircle, Eye, Undo } from 'lucide-react';
+// NUEVA FUNCIONALIDAD: Importar el modal de confirmación
+import ModalConfirmacion from '../components/ModalConfirmacion';
+import { Loader, AlertTriangle, Inbox, Calendar, Hash, CheckCircle, Eye, Undo, Trash2 } from 'lucide-react';
 
 const formatearMoneda = (monto) => new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS' }).format(monto || 0);
 const formatearFecha = (fechaISO) => new Date(fechaISO).toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit', year: 'numeric' });
 
-const FilaCierre = ({ cierre, onProcesar, onVerDetalle, onDeshacer, esAdmin }) => (
+// NUEVA FUNCIONALIDAD: El componente FilaCierre ahora recibe 'onEliminar'
+const FilaCierre = ({ cierre, onProcesar, onVerDetalle, onDeshacer, onEliminar, esAdmin }) => (
     <li className="p-4 flex flex-col md:flex-row md:items-center md:justify-between gap-2">
         <div>
             <div className="flex items-center gap-2">
@@ -31,12 +36,20 @@ const FilaCierre = ({ cierre, onProcesar, onVerDetalle, onDeshacer, esAdmin }) =
                     <Eye size={16}/> Detalle
                 </button>
             ) : (
-                <button onClick={onProcesar} className="bg-blue-500 hover:bg-blue-700 text-white font-semibold px-2 py-1 rounded-md transition-colors">
-                    Procesar Caja
-                </button>
+                <div className="flex items-center gap-2">
+                    <button onClick={onProcesar} className="bg-blue-500 hover:bg-blue-700 text-white font-semibold px-2 py-1 rounded-md transition-colors">
+                        Procesar Caja
+                    </button>
+                    {/* NUEVA FUNCIONALIDAD: Botón de eliminar, solo visible para admin y en cierres no procesados */}
+                    {esAdmin && (
+                        <button onClick={onEliminar} title="Eliminar Cierre Z" className="bg-red-900 hover:bg-red-700 text-white font-semibold px-2 py-1 rounded-md transition-colors flex items-center gap-1">
+                            <Trash2 size={16} />
+                        </button>
+                    )}
+                </div>
             )}
             {cierre.caja_procesada && esAdmin && (
-              <button onClick={onDeshacer} title="Deshacer Proceso" className="bg-red-900 hover:bg-red-700 text-white font-semibold px-2 py-1 rounded-md transition-colors flex items-center gap-1">
+              <button onClick={onDeshacer} title="Deshacer Proceso" className="bg-orange-800 hover:bg-orange-700 text-white font-semibold px-2 py-1 rounded-md transition-colors flex items-center gap-1">
                 <Undo size={16} /> Deshacer
               </button>
             )}
@@ -45,7 +58,7 @@ const FilaCierre = ({ cierre, onProcesar, onVerDetalle, onDeshacer, esAdmin }) =
 );
 
 const CajaDiaria = () => {
-  const { auth } = useAuth(); // Obtener datos de autenticación
+  const { auth } = useAuth();
   const [todosLosCierres, setTodosLosCierres] = useState([]);
   const [estaCargando, setEstaCargando] = useState(true);
   const [error, setError] = useState(null);
@@ -54,6 +67,12 @@ const CajaDiaria = () => {
   const [modalDetalleAbierto, setModalDetalleAbierto] = useState(false);
   const [cierreSeleccionado, setCierreSeleccionado] = useState(null);
   const [detalleSeleccionado, setDetalleSeleccionado] = useState(null);
+
+  // NUEVA FUNCIONALIDAD: Estados para el modal de confirmación de eliminación
+  const [modalConfirmarAbierto, setModalConfirmarAbierto] = useState(false);
+  const [cierreParaEliminar, setCierreParaEliminar] = useState(null);
+  const [eliminando, setEliminando] = useState(false);
+
 
   const cargarCierres = useCallback(async () => {
     try {
@@ -70,14 +89,41 @@ const CajaDiaria = () => {
   useEffect(() => { cargarCierres(); }, [cargarCierres]);
 
   const handleDeshacer = async (cierreId, numeroZ) => {
+    // Se mantiene el confirm nativo para esta acción
     if (window.confirm(`¿Estás seguro de que quieres deshacer el proceso del Cierre Z N° ${numeroZ}? Esta acción es irreversible y borrará los datos de conciliación asociados.`)) {
       try {
         await deshacerProcesoCaja(cierreId);
         alert('El proceso se ha deshecho correctamente.');
-        cargarCierres(); // Recargar la lista para reflejar el cambio
+        cargarCierres();
       } catch (err) {
         alert('Error al intentar deshacer el proceso. Por favor, intenta de nuevo.');
       }
+    }
+  };
+
+  // --- NUEVA FUNCIONALIDAD: Lógica para manejar la eliminación ---
+  const handleAbrirConfirmacion = (cierre) => {
+    setCierreParaEliminar(cierre);
+    setModalConfirmarAbierto(true);
+  };
+
+  const handleCerrarConfirmacion = () => {
+    setModalConfirmarAbierto(false);
+    setCierreParaEliminar(null);
+  };
+
+  const handleConfirmarEliminar = async () => {
+    if (!cierreParaEliminar) return;
+    setEliminando(true);
+    try {
+      await eliminarCierrePorId(cierreParaEliminar.id);
+      alert(`El Cierre Z N° ${cierreParaEliminar.numero_z} ha sido eliminado.`);
+      handleCerrarConfirmacion();
+      cargarCierres(); // Recargar la lista
+    } catch (err) {
+      alert(err.response?.data?.mensaje || 'Error al eliminar el cierre.');
+    } finally {
+      setEliminando(false);
     }
   };
   
@@ -121,7 +167,15 @@ const CajaDiaria = () => {
                 <h2 className="text-xl font-semibold mb-4 text-yellow-400">Pendientes de Procesar ({pendientes.length})</h2>
                 {pendientes.length > 0 ? (
                     <div className="bg-primario rounded-lg border border-borde overflow-hidden"><ul className="divide-y divide-borde">
-                        {pendientes.map(c => <FilaCierre key={c.id} cierre={c} onProcesar={() => abrirModalProcesar(c)} />)}
+                        {pendientes.map(c => 
+                          <FilaCierre 
+                            key={c.id} 
+                            cierre={c} 
+                            onProcesar={() => abrirModalProcesar(c)} 
+                            onEliminar={() => handleAbrirConfirmacion(c)} // NUEVA FUNCIONALIDAD
+                            esAdmin={auth.rol === 'administrador'}
+                          />
+                        )}
                     </ul></div>
                 ) : <p className="text-texto-secundario text-center p-8 bg-primario rounded-lg border border-borde">¡Nada pendiente!</p>}
             </div>
@@ -154,6 +208,17 @@ const CajaDiaria = () => {
       {renderContenido()}
       {modalProcesarAbierto && <ModalCajaDiaria cierre={cierreSeleccionado} alCerrar={cerrarModales} alProcesarExito={handleProcesoExitoso} />}
       {modalDetalleAbierto && <ModalDetalleCaja detalle={detalleSeleccionado} alCerrar={cerrarModales} />}
+      
+      {/* NUEVA FUNCIONALIDAD: Renderizar el modal de confirmación */}
+      {modalConfirmarAbierto && (
+        <ModalConfirmacion
+          titulo="Confirmar Eliminación"
+          mensaje={`¿Estás seguro de que quieres eliminar permanentemente el Cierre Z N° ${cierreParaEliminar?.numero_z}? Esta acción no se puede deshacer y borrará todos los datos asociados (ventas, remitos, etc.).`}
+          alCerrar={handleCerrarConfirmacion}
+          alConfirmar={handleConfirmarEliminar}
+          enviando={eliminando}
+        />
+      )}
     </div>
   );
 };

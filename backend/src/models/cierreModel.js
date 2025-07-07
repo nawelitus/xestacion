@@ -3,8 +3,6 @@
 import pool from '../config/db.js';
 import ClienteModel from './clienteModel.js';
 
-// ... (resto del archivo sin cambios) ...
-
 const CierreModel = {
   async insertarCierreCompleto(datosParseados) {
     const connection = await pool.getConnection();
@@ -30,10 +28,8 @@ const CierreModel = {
         JSON.stringify(ventasCombustible), JSON.stringify(ventasShop),
         JSON.stringify(movimientosCaja), JSON.stringify(remitosParaSp)
       ];
-      // La llamada al SP ahora tiene 18 parámetros (interrogaciones)
       await connection.query('CALL sp_insertar_cierre_completo(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)', params);
-      // ===================== FIN DEL CAMBIO ======================
-
+      
       await connection.commit();
       return { mensaje: `Cierre Z N° ${cabecera.numero_z} guardado exitosamente.` };
     } catch (error) {
@@ -63,35 +59,19 @@ const CierreModel = {
       throw new Error('Error al consultar los cierres en la base de datos.');
     }
   },
-
-  /**
-   * @NUEVO
-   * Busca todos los datos detallados de un Cierre Z específico por su ID.
-   * @param {number} id - El ID del Cierre Z a buscar.
-   * @returns {Promise<object|null>} Un objeto con todos los detalles del cierre, o null si no se encuentra.
-   */
+  
   async buscarDetallePorId(id) {
-    // Usamos Promise.all para ejecutar todas las consultas en paralelo para mayor eficiencia
     try {
       const [cabeceraResult, ventasCombustible, ventasShop, movimientosCaja, remitos] = await Promise.all([
-        // 1. Obtener la cabecera del cierre y datos del usuario
         pool.query(`
           SELECT cz.*, u.nombre_completo as usuario_carga_nombre
           FROM cierres_z cz
           JOIN usuarios u ON cz.usuario_carga_id = u.id
           WHERE cz.id = ?
         `, [id]),
-        
-        // 2. Obtener ventas de combustible
         pool.query('SELECT * FROM ventas_combustible_z WHERE cierre_z_id = ?', [id]),
-
-        // 3. Obtener ventas del shop
         pool.query('SELECT * FROM ventas_shop_z WHERE cierre_z_id = ?', [id]),
-
-        // 4. Obtener todos los movimientos de caja (gastos, etc.)
         pool.query('SELECT * FROM movimientos_caja_z WHERE cierre_z_id = ?', [id]),
-
-        // 5. Obtener los remitos (movimientos de cta cte) y datos del cliente
         pool.query(`
           SELECT m.*, c.nombre as cliente_nombre
           FROM movimientos_cta_cte m
@@ -100,12 +80,10 @@ const CierreModel = {
         `, [id])
       ]);
 
-      // Verificamos si encontramos el cierre principal
       if (cabeceraResult[0].length === 0) {
-        return null; // Si no hay cabecera, el cierre no existe.
+        return null;
       }
 
-      // Estructuramos la respuesta en un único objeto
       return {
         cabecera: cabeceraResult[0][0],
         ventasCombustible: ventasCombustible[0],
@@ -117,6 +95,50 @@ const CierreModel = {
     } catch (error) {
       console.error(`Error al buscar el detalle del cierre con ID ${id}:`, error);
       throw new Error('Error al consultar el detalle del cierre en la base de datos.');
+    }
+  },
+
+  // ================================================================
+  // NUEVA FUNCIONALIDAD: Eliminar un Cierre Z completo
+  // ================================================================
+  /**
+   * Elimina un Cierre Z y todos sus registros asociados de forma transaccional.
+   * @param {number} id - El ID del Cierre Z a eliminar.
+   * @returns {Promise<object>} Resultado de la operación.
+   */
+  async eliminarCierreCompletoPorId(id) {
+    const connection = await pool.getConnection();
+    try {
+      await connection.beginTransaction();
+
+      // El orden es importante para respetar las claves foráneas.
+      // Primero se eliminan los registros de las tablas hijas.
+      await connection.query('DELETE FROM ventas_combustible_z WHERE cierre_z_id = ?', [id]);
+      await connection.query('DELETE FROM ventas_shop_z WHERE cierre_z_id = ?', [id]);
+      await connection.query('DELETE FROM movimientos_caja_z WHERE cierre_z_id = ?', [id]);
+      await connection.query('DELETE FROM movimientos_cta_cte WHERE cierre_z_id = ?', [id]);
+      await connection.query('DELETE FROM caja_diaria_creditos WHERE cierre_z_id = ?', [id]);
+      await connection.query('DELETE FROM retiros_personal WHERE cierre_z_id = ?', [id]);
+      
+      // Finalmente, se elimina el registro de la tabla maestra.
+      const [resultado] = await connection.query('DELETE FROM cierres_z WHERE id = ?', [id]);
+
+      await connection.commit();
+
+      // Si affectedRows es 0, significa que no se encontró un cierre con ese ID.
+      if (resultado.affectedRows === 0) {
+        throw new Error('No se encontró un Cierre Z con el ID proporcionado para eliminar.');
+      }
+
+      return resultado;
+
+    } catch (error) {
+      await connection.rollback();
+      console.error(`Error en la transacción de eliminación del Cierre Z con ID ${id}:`, error);
+      // Lanza el error para que el controlador lo capture.
+      throw error; 
+    } finally {
+      connection.release();
     }
   }
 };

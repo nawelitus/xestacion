@@ -12,7 +12,6 @@ const storage = multer.memoryStorage();
 const upload = multer({
     storage: storage,
     fileFilter: (req, file, cb) => {
-        // Aceptar solo archivos de texto (.txt)
         if (file.mimetype === "text/plain") {
             cb(null, true);
         } else {
@@ -28,32 +27,50 @@ router.post(
   '/subir',
   [
     verificarToken,
-    autorizarRol(['administrador', 'editor']) // Solo estos roles pueden subir archivos
+    autorizarRol(['administrador', 'editor'])
   ],
-  upload.single('archivoCierre'), // 'archivoCierre' es el nombre del campo en el form-data
+  upload.single('archivoCierre'),
   CierreController.subirYCargarCierre
 );
-
 
 // @route   GET api/cierres/
 // @desc    Obtiene los cierres más recientes
 // @access  Privado (todos los roles autenticados)
-// @NUEVA RUTA
 router.get(
     '/',
     [
         verificarToken,
-        autorizarRol(['administrador', 'editor', 'visualizador']) // Todos pueden ver
+        autorizarRol(['administrador', 'editor', 'visualizador'])
     ],
     CierreController.obtenerCierresRecientes
 );
+
+// @route   GET api/cierres/:id
+// @desc    Obtiene los detalles completos de un Cierre Z específico
+// @access  Privado (todos los roles autenticados)
 router.get(
-    '/:id', // La ruta ahora acepta un parámetro 'id'
+    '/:id',
     [
         verificarToken,
         autorizarRol(['administrador', 'editor', 'visualizador'])
     ],
     CierreController.obtenerDetalleCierre
 );
+
+// ================================================================
+// NUEVA FUNCIONALIDAD: Ruta para eliminar un Cierre Z
+// ================================================================
+// @route   DELETE api/cierres/:id
+// @desc    Elimina un Cierre Z y todos sus datos asociados
+// @access  Privado (solo administrador)
+router.delete(
+    '/:id',
+    [
+        verificarToken,
+        autorizarRol(['administrador']) // Solo los administradores pueden eliminar
+    ],
+    CierreController.eliminarCierre
+);
+
 
 export default router;
