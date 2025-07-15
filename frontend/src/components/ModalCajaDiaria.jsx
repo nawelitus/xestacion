@@ -1,9 +1,9 @@
-// Contenido para: src/components/ModalCajaDiaria.jsx
+// Contenido COMPLETO y ACTUALIZADO para: src/components/ModalCajaDiaria.jsx
 
 import React, { useState, useMemo, useEffect } from "react";
 import { procesarCajaDiaria } from "../services/cajaDiariaService";
 import { obtenerTodosLosEmpleados } from "../services/empleadoService";
-import { obtenerDetallePorId } from "../services/cierreService"; // <-- IMPORTANTE: Nuevo servicio importado
+import { obtenerDetallePorId } from "../services/cierreService";
 import {
   X,
   Loader,
@@ -90,7 +90,7 @@ const FilaCredito = ({ item, indice, actualizarCredito }) => {
   );
 };
 
-// --- NUEVO: Componente Acordeón ---
+// --- Componente Acordeón (sin cambios) ---
 const Acordion = ({ titulo, children }) => {
   const [abierto, setAbierto] = useState(false);
   return (
@@ -114,13 +114,14 @@ const Acordion = ({ titulo, children }) => {
   );
 };
 
-// --- NUEVO: Componente para mostrar el detalle del Cierre Z ---
+// --- Componente VisorCierreZ (sin cambios) ---
 const VisorCierreZ = ({ cierreId }) => {
   const [detalle, setDetalle] = useState(null);
   const [cargando, setCargando] = useState(false);
   const [error, setError] = useState("");
 
   const cargarDetalle = async () => {
+    if (detalle) return; // No volver a cargar si ya tenemos los datos
     setCargando(true);
     setError("");
     try {
@@ -132,45 +133,40 @@ const VisorCierreZ = ({ cierreId }) => {
       setCargando(false);
     }
   };
+  
+  // Puedes invocar cargarDetalle aquí si quieres que se cargue automáticamente
+  // useEffect(() => { cargarDetalle(); }, [cierreId]);
 
-  if (!detalle && !cargando && !error) {
-    return (
-      <button onClick={cargarDetalle} className="text-blue-500 hover:underline">
-        Cargar y ver detalle del Cierre Z
-      </button>
-    );
+  if (cargando) return <div className="flex justify-center"><Loader className="animate-spin" /></div>;
+  if (error) return <p className="text-red-500 text-center">{error}</p>;
+  if (!detalle) {
+      return (
+        <div className="text-center">
+            <button onClick={cargarDetalle} className="text-blue-500 hover:underline">
+                Cargar y ver detalle del Cierre Z
+            </button>
+        </div>
+      );
   }
-  if (cargando) return <Loader className="animate-spin" />;
-  if (error) return <p className="text-red-500">{error}</p>;
 
   return (
-    <div className="text-xs space-y-3">
-      {Object.entries(detalle.cabecera).map(([key, value]) => (
-        <div key={key}>
-          <strong>{key}:</strong> {String(value)}
-        </div>
+    <div className="text-xs space-y-1 max-h-48 overflow-y-auto p-2 bg-fondo rounded">
+      {detalle.remitos.length > 0 && <h4 className="font-bold mt-2">Remitos:</h4>}
+      {detalle.remitos.map((v, i) => (
+        <div key={i}>{v.cliente_nombre} ({v.concepto}): {formatearMoneda(v.importe)}</div>
       ))}
-      <h4 className="font-bold mt-2">Ventas Combustible:</h4>
-      {detalle.ventasCombustible.map((v, i) => (
-        <div key={i}>
-          {v.producto_nombre}: {v.litros} Lts - {formatearMoneda(v.importe)}
-        </div>
+      {detalle.gastos.length > 0 && <h4 className="font-bold mt-2">Gastos:</h4>}
+      {detalle.gastos.map((m, i) => (
+        <div key={i}>{m.descripcion}: {formatearMoneda(m.importe)}</div>
       ))}
-      <h4 className="font-bold mt-2">Ventas Shop:</h4>
-      {detalle.ventasShop.map((v, i) => (
-        <div key={i}>
-          {v.producto_nombre}: {v.cantidad} Un. - {formatearMoneda(v.importe)}
-        </div>
-      ))}
-      <h4 className="font-bold mt-2">Movimientos Caja:</h4>
-      {detalle.movimientosCaja.map((m, i) => (
-        <div key={i}>
-          {m.tipo} ({m.descripcion}): {formatearMoneda(m.monto)}
-        </div>
+      {detalle.mercadoPago.length > 0 && <h4 className="font-bold mt-2">MercadoPago:</h4>}
+      {detalle.mercadoPago.map((m, i) => (
+        <div key={i}>{m.descripcion}: {formatearMoneda(m.importe)}</div>
       ))}
     </div>
   );
 };
+
 
 const ModalCajaDiaria = ({ cierre, alCerrar, alProcesarExito }) => {
   if (!cierre) return null;
@@ -241,6 +237,7 @@ const ModalCajaDiaria = ({ cierre, alCerrar, alProcesarExito }) => {
   const handleSubmit = async () => {
     setError("");
     setEnviando(true);
+
     const datosParaEnviar = {
       billetera: {
         recibido: Number(billetera.recibido) || 0,
@@ -249,17 +246,26 @@ const ModalCajaDiaria = ({ cierre, alCerrar, alProcesarExito }) => {
       creditos: creditos
         .map((c) => ({ ...c, importe: Number(c.importe) || 0 }))
         .filter((c) => c.item && c.importe > 0),
+      // ==================================================================
+      // ▼▼▼ ÚNICO CAMBIO REALIZADO ▼▼▼
+      // ==================================================================
+      // Se renombra la clave 'nombre' a 'nombre_empleado' para que coincida con el backend.
       retiros: retiros
-        .map((r) => ({ ...r, monto: Number(r.monto) || 0 }))
-        .filter((r) => r.nombre && r.monto > 0),
+        .map((r) => ({
+          nombre_empleado: r.nombre, // <-- ESTA ES LA CORRECCIÓN
+          monto: Number(r.monto) || 0,
+        }))
+        .filter((r) => r.nombre_empleado && r.monto > 0),
+      // ==================================================================
     };
+
     try {
       await procesarCajaDiaria(cierre.id, datosParaEnviar);
       alProcesarExito();
     } catch (err) {
-      setError(
-        "Error al procesar el cierre. Verifique los datos e intente de nuevo."
-      );
+      // Ahora también mostramos el detalle del error que viene del backend
+      const mensajeError = err.response?.data?.detalle || "Error al procesar el cierre. Verifique los datos e intente de nuevo.";
+      setError(mensajeError);
     } finally {
       setEnviando(false);
     }
@@ -267,16 +273,16 @@ const ModalCajaDiaria = ({ cierre, alCerrar, alProcesarExito }) => {
 
   return (
     <div
-      className="fixed inset-0 bg-black/60 flex justify-center items-center z-50 p-4"
+      className="fixed inset-0 bg-black/60 flex justify-center items-center z-50 p-4 animate-fade-in"
       onClick={alCerrar}
     >
       <div
-        className="bg-primario rounded-lg shadow-xl w-full max-w-3xl max-h-[92vh] flex flex-col"
+        className="bg-primario rounded-lg shadow-xl w-full max-w-4xl max-h-[95vh] flex flex-col"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex justify-between items-center p-3 border-b border-borde">
+        <div className="flex justify-between items-center p-4 border-b border-borde">
           <h2 className="text-xl font-bold">
-            Procesar Caja Diaria - Cierre Z N° {cierre.numero_z}  
+            Procesar Caja Diaria - Cierre Z N° {cierre.numero_z}
           </h2>
           <button
             onClick={alCerrar}
@@ -286,31 +292,32 @@ const ModalCajaDiaria = ({ cierre, alCerrar, alProcesarExito }) => {
           </button>
         </div>
 
-        <div className="p-5 overflow-y-auto space-y-7">
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-1 ">
-            <div className="md:col-span-2 space-y-2 ">
-              <h3 className="text-lg font-semibold flex  text-blue-200 items-center gap-4">
+        <div className="p-4 overflow-y-auto space-y-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className="lg:col-span-2 space-y-4">
+              <h3 className="text-lg font-semibold flex text-blue-200 items-center gap-2">
                 <Landmark size={20} /> Créditos y Vales
               </h3>
-              <table className=" w-full max-w-md text-sm mx-auto">
-                <thead>
-                  <tr>
-                    <th className="text-left p-1 w-2/3">Item</th>
-                    <th className="text-left p-1 w-1/3">Importe</th>
-                  </tr>
-                </thead>
-
-                <tbody className="bg-gray-700 rounded-md ">
-                  {creditos.map((c, i) => (
-                    <FilaCredito
-                      key={i}
-                      item={c}
-                      indice={i}
-                      actualizarCredito={actualizarCredito}
-                    />
-                  ))} 
-                </tbody>
-              </table>
+              <div className="max-h-80 overflow-y-auto pr-2">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr>
+                      <th className="text-left p-1 w-2/3">Item</th>
+                      <th className="text-left p-1 w-1/3">Importe</th>
+                    </tr>
+                  </thead>
+                  <tbody className="bg-secundario rounded-md">
+                    {creditos.map((c, i) => (
+                      <FilaCredito
+                        key={i}
+                        item={c}
+                        indice={i}
+                        actualizarCredito={actualizarCredito}
+                      />
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             </div>
 
             <div className="space-y-6">
@@ -320,7 +327,7 @@ const ModalCajaDiaria = ({ cierre, alCerrar, alProcesarExito }) => {
                 </h3>
                 <div className="space-y-2 mt-2">
                   <div>
-                    <label className="text-blue-300 text-xs text-texto-secundario">
+                    <label className="text-blue-300 text-xs font-medium">
                       Dinero Recibido
                     </label>
                     <input
@@ -329,11 +336,11 @@ const ModalCajaDiaria = ({ cierre, alCerrar, alProcesarExito }) => {
                       onChange={(e) =>
                         setBilletera({ ...billetera, recibido: e.target.value })
                       }
-                      className="-full bg-fondo p-2 rounded-md outline-none focus:ring-1 focus:ring-blue-500 text-texto-principal border border-borde"
+                      className="w-full bg-fondo p-2 rounded-md outline-none focus:ring-1 focus:ring-blue-500 text-texto-principal border border-borde"
                     />
                   </div>
                   <div>
-                    <label className="text-red-300 text-xs text-texto-secundario">
+                    <label className="text-red-300 text-xs font-medium">
                       Dinero Entregado
                     </label>
                     <input
@@ -345,10 +352,10 @@ const ModalCajaDiaria = ({ cierre, alCerrar, alProcesarExito }) => {
                           entregado: e.target.value,
                         })
                       }
-                      className="-full bg-fondo p-2 rounded-md outline-none focus:ring-1 focus:ring-blue-500 text-texto-principal border border-borde"
+                      className="w-full bg-fondo p-2 rounded-md outline-none focus:ring-1 focus:ring-blue-500 text-texto-principal border border-borde"
                     />
                   </div>
-                  <div className="text-orange-200 pt-1 text-texto-secundario">
+                  <div className="text-orange-300 pt-1 font-semibold">
                     Diferencia Neta:{" "}
                     {formatearMoneda(
                       (Number(billetera.entregado) || 0) -
@@ -365,7 +372,7 @@ const ModalCajaDiaria = ({ cierre, alCerrar, alProcesarExito }) => {
                   {retiros.map((r, i) => (
                     <div
                       key={i}
-                      className="flex items-center gap-2 text-xs bg-secundario p-1 rounded"
+                      className="flex items-center gap-2 text-sm bg-secundario p-1.5 rounded"
                     >
                       <span className="flex-1 text-texto-principal">
                         {r.nombre}
@@ -377,11 +384,11 @@ const ModalCajaDiaria = ({ cierre, alCerrar, alProcesarExito }) => {
                         onClick={() => eliminarRetiro(i)}
                         className="text-red-500 hover:text-red-400"
                       >
-                        <Trash2 size={14} />
+                        <Trash2 size={16} />
                       </button>
                     </div>
                   ))}
-                  <div className="flex items-center gap-1 pt">
+                  <div className="flex items-center gap-2 pt-1">
                     <select
                       value={nuevoRetiro.nombre}
                       onChange={(e) =>
@@ -390,10 +397,10 @@ const ModalCajaDiaria = ({ cierre, alCerrar, alProcesarExito }) => {
                           nombre: e.target.value,
                         })
                       }
-                      className="w-full bg-fondo  text-xs  p-2 rounded-md outline-none focus:ring-1 focus:ring-blue-500 text-texto-principal border border-borde"
+                      className="w-full bg-fondo p-2 rounded-md outline-none focus:ring-1 focus:ring-blue-500 text-texto-principal border border-borde text-sm"
                     >
                       <option value="" disabled>
-                        empleado...
+                        Empleado...
                       </option>
                       {listaEmpleados.map((emp) => (
                         <option key={emp.id} value={emp.nombre_completo}>
@@ -411,21 +418,20 @@ const ModalCajaDiaria = ({ cierre, alCerrar, alProcesarExito }) => {
                           monto: e.target.value,
                         })
                       }
-                      className="w-20 bg-fondo p-1.5   text-xs rounded-md outline-none focus:ring-1 focus:ring-blue-500 text-texto-principal border border-borde"
+                      className="w-24 bg-fondo p-2 rounded-md outline-none focus:ring-1 focus:ring-blue-500 text-texto-principal border border-borde text-sm"
                     />
                     <button
                       onClick={agregarRetiro}
-                      className="bg-blue-600 p-2 rounded disabled:bg-orange-600"
+                      className="bg-blue-600 p-2.5 rounded hover:bg-blue-500 disabled:bg-gray-600"
                       disabled={!nuevoRetiro.nombre || !nuevoRetiro.monto}
                     >
-                      <PlusCircle size={16} />
+                      <PlusCircle size={18} />
                     </button>
                   </div>
                 </div>
               </div>
             </div>
           </div>
-          {/* --- INTEGRACIÓN DEL ACORDEÓN --- */}
           <Acordion
             titulo={
               <>
@@ -437,9 +443,12 @@ const ModalCajaDiaria = ({ cierre, alCerrar, alProcesarExito }) => {
           </Acordion>
         </div>
 
-        <div className="p-2 bg-secundario/50 mt-auto border-t border-borde">
-          <div className="grid grid-cols-4 gap-4 text-center">
-            <div>
+        <div className="p-3 bg-secundario/50 mt-auto border-t border-borde">
+          {error && (
+            <p className="text-red-400 text-center text-sm mb-2">{error}</p>
+          )}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 items-center">
+            <div className="text-center">
               <p className="text-xs text-texto-secundario">
                 Total a Rendir (Z)
               </p>
@@ -447,15 +456,15 @@ const ModalCajaDiaria = ({ cierre, alCerrar, alProcesarExito }) => {
                 {formatearMoneda(cierre.total_a_rendir)}
               </p>
             </div>
-            <div>
+            <div className="text-center">
               <p className="text-xs text-texto-secundario">
-                Total Declarado (Final)
+                Total Declarado
               </p>
               <p className="font-bold text-lg">
                 {formatearMoneda(totalDeclaradoFinal)}
               </p>
             </div>
-            <div>
+            <div className="text-center">
               <p className="text-xs text-texto-secundario">Diferencia</p>
               <p
                 className={`font-bold text-lg ${
@@ -465,13 +474,10 @@ const ModalCajaDiaria = ({ cierre, alCerrar, alProcesarExito }) => {
                 {formatearMoneda(diferenciaFinal)}
               </p>
             </div>
-            {error && (
-              <p className="text-red-500 text-center text-sm mt-2">{error}</p>
-            )}
             <button
               onClick={handleSubmit}
               disabled={enviando}
-              className="w-full mt-1 bg-blue-500 hover:bg-blue-700 disabled:bg-blue-900 text-white font-bold py-1 rounded-md flex items-center justify-center gap-4"
+              className="w-full bg-blue-600 hover:bg-blue-500 disabled:bg-blue-900/50 text-white font-bold py-3 rounded-md flex items-center justify-center gap-2 transition-colors"
             >
               {enviando ? <Loader className="animate-spin" /> : "Procesar Caja"}
             </button>

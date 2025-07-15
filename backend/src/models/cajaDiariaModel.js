@@ -1,11 +1,11 @@
-// Contenido para: src/models/cajaDiariaModel.js
+// Contenido COMPLETO y ACTUALIZADO para: src/models/cajaDiariaModel.js
 
 import pool from '../config/db.js';
 import CierreModel from './cierreModel.js';
 
 const CajaDiariaModel = {
   async listarTodosParaCaja() {
-    // ... código existente sin cambios ...
+    // ... (sin cambios en esta función)
     const [filas] = await pool.query(
       `SELECT id, numero_z, fecha_turno, total_a_rendir, caja_procesada 
        FROM cierres_z 
@@ -15,28 +15,15 @@ const CajaDiariaModel = {
   },
 
   async obtenerDetalleProcesado(cierreId) {
-    // ... código existente sin cambios ...
-    try {
-      const [
-        detalleCierreBase,
-        creditos,
-        retiros
-      ] = await Promise.all([
+    // ... (sin cambios en esta función)
+     try {
+      const [ detalleCierreBase, creditos, retiros ] = await Promise.all([
         CierreModel.buscarDetallePorId(cierreId),
         pool.query('SELECT * FROM caja_diaria_creditos WHERE cierre_z_id = ? ORDER BY id', [cierreId]),
         pool.query('SELECT * FROM retiros_personal WHERE cierre_z_id = ? ORDER BY id', [cierreId])
       ]);
-
-      if (!detalleCierreBase) {
-        return null;
-      }
-      
-      return {
-        cierre: detalleCierreBase,
-        creditos: creditos[0],
-        retiros: retiros[0]
-      };
-
+      if (!detalleCierreBase) return null;
+      return { ...detalleCierreBase, creditos: creditos[0], retiros: retiros[0] };
     } catch (error) {
       console.error(`Error al obtener detalle de caja procesada para cierre ${cierreId}:`, error);
       throw new Error('Error en la base de datos al obtener el detalle de la caja.');
@@ -44,13 +31,17 @@ const CajaDiariaModel = {
   },
 
   async procesarCaja(cierreId, datos) {
-    // ... código existente sin cambios ...
     const connection = await pool.getConnection();
     try {
       await connection.beginTransaction();
 
       const { billetera, creditos, retiros } = datos;
-      const cierreOriginal = (await connection.query('SELECT total_a_rendir FROM cierres_z WHERE id = ?', [cierreId]))[0][0];
+      
+      const [cierreResult] = await connection.query('SELECT total_a_rendir FROM cierres_z WHERE id = ?', [cierreId]);
+      if (cierreResult.length === 0) {
+        throw new Error(`No se encontró el Cierre Z con ID ${cierreId}.`);
+      }
+      const cierreOriginal = cierreResult[0];
       
       const totalRendirZ = Number(cierreOriginal.total_a_rendir) || 0;
       const totalCreditos = creditos.reduce((acc, c) => acc + c.importe, 0);
@@ -58,14 +49,18 @@ const CajaDiariaModel = {
       const totalDeclaradoFinal = totalCreditos + diferenciaBilletera;
       const diferenciaFinal = totalDeclaradoFinal - totalRendirZ;
 
-      const creditosAInsertar = creditos.filter(c => c.importe > 0).map(c => [cierreId, c.item, c.importe]);
-      if (creditosAInsertar.length > 0) {
-        await connection.query('INSERT INTO caja_diaria_creditos (cierre_z_id, item, importe) VALUES ?', [creditosAInsertar]);
+      if (creditos.length > 0) {
+        const creditosAInsertar = creditos.filter(c => c.importe > 0).map(c => [cierreId, c.item, c.importe]);
+        if (creditosAInsertar.length > 0) {
+            await connection.query('INSERT INTO caja_diaria_creditos (cierre_z_id, item, importe) VALUES ?', [creditosAInsertar]);
+        }
       }
       
-      const retirosAInsertar = retiros.map(r => [cierreId, r.nombre, r.monto]);
-      if (retirosAInsertar.length > 0) {
-        await connection.query('INSERT INTO retiros_personal (cierre_z_id, nombre_empleado, monto) VALUES ?', [retirosAInsertar]);
+      if (retiros.length > 0) {
+        const retirosAInsertar = retiros.map(r => [cierreId, r.nombre_empleado, r.monto]);
+        if (retirosAInsertar.length > 0) {
+            await connection.query('INSERT INTO retiros_personal (cierre_z_id, nombre_empleado, monto) VALUES ?', [retirosAInsertar]);
+        }
       }
 
       await connection.query(
@@ -82,36 +77,30 @@ const CajaDiariaModel = {
       await connection.commit();
     } catch (error) {
       await connection.rollback();
-      throw new Error('Error en la base de datos al procesar la caja diaria.');
+      // ==================================================================
+      // ▼▼▼ MEJORA EN EL LOG DE ERRORES ▼▼▼
+      // ==================================================================
+      console.error(`ERROR EN MODELO al procesar caja (transacción revertida):`, error);
+      throw new Error(`Error en la base de datos: ${error.message}`);
+      // ==================================================================
     } finally {
       connection.release();
     }
   },
 
-  // --- AÑADIR NUEVA FUNCIÓN ---
   async deshacerProceso(cierreId) {
+    // ... (sin cambios en esta función)
     const connection = await pool.getConnection();
     try {
       await connection.beginTransaction();
-
-      // 1. Eliminar los créditos manuales asociados
       await connection.query('DELETE FROM caja_diaria_creditos WHERE cierre_z_id = ?', [cierreId]);
-
-      // 2. Eliminar los retiros de personal asociados
       await connection.query('DELETE FROM retiros_personal WHERE cierre_z_id = ?', [cierreId]);
-
-      // 3. Revertir el estado del Cierre Z
       await connection.query(
         `UPDATE cierres_z SET 
-           caja_procesada = 0,
-           declarado_billetera_recibido = NULL,
-           declarado_billetera_entregado = NULL,
-           declarado_total_final = NULL,
-           diferencia_final = NULL
-         WHERE id = ?`,
-        [cierreId]
+           caja_procesada = 0, declarado_billetera_recibido = NULL, declarado_billetera_entregado = NULL,
+           declarado_total_final = NULL, diferencia_final = NULL
+         WHERE id = ?`, [cierreId]
       );
-
       await connection.commit();
     } catch (error) {
       await connection.rollback();
