@@ -1,191 +1,160 @@
-// src/components/ModalDetalleCaja.jsx
-import React, { useRef } from 'react';
-import { X, Printer, User, Hash } from 'lucide-react';
-import jsPDF from 'jspdf';
-import html2canvas from 'html2canvas';
+import React from 'react';
+import { X, FileText, Calendar, User, Clock, AlertTriangle, CheckCircle } from 'lucide-react';
 
-const formatearMoneda = (monto) => new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS' }).format(monto || 0);
-const formatearFecha = (fechaISO) => new Date(fechaISO).toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit', year: 'numeric' });
+// --- Helpers de formato (se pueden mover a un archivo utils si se usan en más lugares) ---
+const formatearMoneda = (valor) => {
+  return new Intl.NumberFormat('es-AR', {
+    style: 'currency',
+    currency: 'ARS',
+  }).format(valor || 0);
+};
 
-const ModalDetalleCaja = ({ detalle, alCerrar }) => {
-  const ref = useRef(null);
+const formatearFecha = (fechaString) => {
+  if (!fechaString) return 'N/A';
+  const fecha = new Date(fechaString);
+  fecha.setDate(fecha.getDate() + 1);
+  return fecha.toLocaleDateString('es-AR', {
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+  });
+};
 
-  const exportarPDF = () => {
-    const input = ref.current;
-    if (!input) return;
-
-    const pdf = new jsPDF({
-      orientation: 'portrait',
-      unit: 'mm',
-      format: 'a4'
-    });
-
-    pdf.html(input, {
-      callback: function (doc) {
-        doc.save(`Informe_Caja_Z${detalle?.cierre?.cabecera?.numero_z}.pdf`);
-      },
-      margin: [10, 10, 10, 10],
-      width: 190,
-      windowWidth: input.scrollWidth
-    });
-  };
-
-  if (!detalle) return null;
-  const { cierre, creditos, retiros } = detalle;
-  const { cabecera } = cierre;
-  const getMovimientosPorTipo = (tipo) => cierre.movimientosCaja.filter(m => m.tipo.toLowerCase() === tipo.toLowerCase());
-
-  const Bloque = ({ titulo, children, total }) => (
-    <div className="border border-gray-300 rounded-lg p-3 bg-white shadow-sm w-full h-full flex flex-col">
-      <div className="flex justify-between items-center border-b pb-2 mb-2">
-        <h3 className="text-sm font-semibold text-gray-700">{titulo}</h3>
-        {total !== undefined && <span className="text-sm font-semibold text-gray-800">{formatearMoneda(total)}</span>}
-      </div>
-      <div className="flex-grow">
-        {children}
+// --- Componente de Sección de Detalles (sin cambios) ---
+const DetalleSeccion = ({ titulo, items, columnas }) => {
+  if (!items || items.length === 0) {
+    return null;
+  }
+  return (
+    <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-200">
+      <h3 className="text-md font-semibold text-gray-800 mb-3 border-b pb-2">{titulo}</h3>
+      <div className="overflow-x-auto">
+        <table className="min-w-full divide-y divide-gray-200">
+          <thead className="bg-gray-50">
+            <tr>
+              {columnas.map((col) => (
+                <th key={col.key} scope="col" className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  {col.header}
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody className="bg-white divide-y divide-gray-200">
+            {items.map((item, index) => (
+              <tr key={index} className="hover:bg-gray-50">
+                {columnas.map((col) => (
+                  <td key={`${index}-${col.key}`} className="px-3 py-2 whitespace-nowrap text-sm text-gray-700">
+                    {col.isCurrency ? formatearMoneda(item[col.key]) : item[col.key]}
+                  </td>
+                ))}
+              </tr>
+            ))}
+          </tbody>
+           <tfoot>
+            <tr>
+              <td colSpan={columnas.length - 1} className="px-3 py-2 text-right text-sm font-bold text-gray-800">TOTAL</td>
+              <td className="px-3 py-2 text-left text-sm font-bold text-gray-900">
+                {formatearMoneda(items.reduce((acc, item) => acc + (parseFloat(item.importe) || parseFloat(item.monto) || 0), 0))}
+              </td>
+            </tr>
+          </tfoot>
+        </table>
       </div>
     </div>
   );
+};
 
-  const Tabla = ({ headers, data, renderRow }) => (
-    <table className="w-full text-xs">
-      <thead><tr className="bg-gray-100">{headers.map(h => <th key={h} className="text-left p-1.5 font-semibold text-gray-600">{h}</th>)}</tr></thead>
-      <tbody>{data.map(renderRow)}</tbody>
-    </table>
-  );
+// --- Componente Principal del Modal ---
+const ModalDetalleCaja = ({ detalle, onClose }) => {
+  // Si no hay detalle o cabecera, no se muestra nada para evitar errores.
+  if (!detalle || !detalle.cabecera) {
+    return null;
+  }
 
-  const FilaResumen = ({ etiqueta, valor, color = 'text-gray-800' }) => (
-    <div className="flex justify-between py-1 border-b border-gray-200">
-      <span className="text-gray-600">{etiqueta}</span>
-      <span className={`font-semibold ${color}`}>{formatearMoneda(valor)}</span>
-    </div>
-  );
+  const { cabecera } = detalle;
+
+  // Definición de columnas
+  const columnasGenericas = [
+    { header: 'Descripción', key: 'descripcion' },
+    { header: 'Importe', key: 'importe', isCurrency: true },
+  ];
+  const columnasRemitos = [
+    { header: 'Nº Remito', key: 'concepto' },
+    { header: 'Cliente', key: 'cliente_nombre' },
+    { header: 'Importe', key: 'importe', isCurrency: true },
+  ];
+  const columnasMovimientos = [
+    { header: 'Comprobante', key: 'comprobante_nro' },
+    { header: 'Descripción', key: 'descripcion' },
+    { header: 'Importe', key: 'importe', isCurrency: true },
+  ];
+  const columnasTanques = [
+    { header: 'N° Tanque', key: 'numero_tanque' },
+    { header: 'Producto', key: 'producto' },
+    { header: 'Despachado (Lts)', key: 'despachado' },
+  ];
 
   return (
-    <div className="fixed inset-0 bg-black/60 flex justify-center items-center z-50 p-4" onClick={alCerrar}>
-      <div className="bg-white rounded-md shadow-xl w-full max-w-7xl max-h-[95vh] overflow-hidden flex flex-col" onClick={e => e.stopPropagation()}>
-        <div className="flex justify-between items-center p-3 border-b bg-gray-50">
-          <div className='flex items-center gap-4'>
-            <div className='flex items-center gap-2 text-gray-700'>
-              <Hash size={18} />
-              <h2 className="text-lg font-bold">Cierre Z N° {cabecera.numero_z}</h2>
-            </div>
-            <div className='flex items-center gap-2 text-gray-600'>
-              <User size={18} />
-              <span className='font-semibold'>Cerrado por: {cabecera.cerrado_por || 'No especificado'}</span>
-            </div>
-          </div>
-          <div className="flex items-center gap-2">
-            <button onClick={exportarPDF} className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 text-sm rounded flex items-center gap-2">
-              <Printer size={16} /> Exportar
-            </button>
-            <button onClick={alCerrar} className="text-gray-500 hover:text-black"><X /></button>
-          </div>
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50 p-4">
+      <div className="bg-gray-50 rounded-2xl shadow-2xl w-full max-w-6xl max-h-[95vh] flex flex-col">
+        {/* Cabecera del Modal */}
+        <div className="flex justify-between items-center p-4 border-b border-gray-200 sticky top-0 bg-gray-50 rounded-t-2xl">
+          <h2 className="text-xl font-bold text-gray-800 flex items-center gap-2">
+            <FileText size={22} />
+            Detalle del Cierre Z N° {cabecera.numero_z}
+          </h2>
+          <button onClick={onClose} className="p-2 rounded-full hover:bg-gray-200 transition-colors">
+            <X size={24} className="text-gray-600" />
+          </button>
         </div>
 
-        <div className="overflow-y-auto">
-          <div ref={ref} className="p-4 bg-white text-black text-sm space-y-3">
-
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-center mb-2">
-                <div className="p-2 bg-gray-50 rounded-lg border">
-                    <p className="text-gray-600 text-xs">Fecha</p>
-                    <p className="text-base font-semibold text-gray-800">{formatearFecha(cabecera.fecha_turno)}</p>
+        {/* Contenido del Modal con Scroll */}
+        <div className="p-4 overflow-y-auto">
+          <div className="bg-white p-4 rounded-xl shadow-md border border-gray-200 mb-4">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
+                <div>
+                    <p className="text-sm text-gray-500">
+                        Cargado por {cabecera.usuario_carga_nombre} el {new Date(cabecera.fecha_carga).toLocaleString('es-AR')}
+                    </p>
                 </div>
-                <div className="p-2 bg-gray-50 rounded-lg border">
-                    <p className="text-gray-600 text-xs">Horario</p>
-                    <p className="text-base font-semibold text-gray-800">{cabecera.hora_inicio} - {cabecera.hora_fin}</p>
-                </div>
-                <div className="p-2 bg-gray-50 rounded-lg border">
-                    <p className="text-gray-600 text-xs">Cargado por</p>
-                    <p className="text-base font-semibold text-gray-800">{cabecera.usuario_carga_nombre}</p>
-                </div>
-                 <div className="p-2 bg-gray-50 rounded-lg border">
-                    <p className="text-gray-600 text-xs">Cerrado por</p>
-                    <p className="text-base font-semibold text-gray-800">{cabecera.cerrado_por}</p>
+                <div className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium ${cabecera.caja_procesada ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}`}>
+                    {cabecera.caja_procesada ? <CheckCircle size={14} /> : <AlertTriangle size={14} />}
+                    <span>{cabecera.caja_procesada ? 'Caja Procesada' : 'Pendiente de Procesar'}</span>
                 </div>
             </div>
-            
-            <div className="flex justify-around items-center p-3 bg-blue-50 rounded-lg border border-blue-200">
-              <div><p className="text-gray-600 text-xs">Total a Rendir (Z)</p><p className="text-xl font-bold text-blue-700">{formatearMoneda(cabecera.total_a_rendir)}</p></div>
-              <div><p className="text-gray-600 text-xs">Total Declarado</p><p className="text-xl font-bold text-green-600">{formatearMoneda(cabecera.declarado_total_final)}</p></div>
-              <div><p className="text-gray-600 text-xs">Diferencia</p><p className={`text-xl font-bold ${cabecera.diferencia_final < 0 ? 'text-red-500' : 'text-green-500'}`}>{formatearMoneda(cabecera.diferencia_final)}</p></div>
+            <div className="mt-3 border-t pt-3 grid grid-cols-2 sm:grid-cols-3 gap-3 text-sm">
+              <div className="flex items-center gap-2"><Calendar className="text-blue-500" size={18} /><div><p className="font-semibold">Fecha</p><p>{formatearFecha(cabecera.fecha_turno)}</p></div></div>
+              <div className="flex items-center gap-2"><Clock className="text-blue-500" size={18} /><div><p className="font-semibold">Horario</p><p>{cabecera.hora_inicio} - {cabecera.hora_fin}</p></div></div>
+              <div className="flex items-center gap-2"><User className="text-blue-500" size={18} /><div><p className="font-semibold">Cerrado por</p><p>{cabecera.cerrado_por}</p></div></div>
             </div>
+          </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-              <Bloque titulo="Conciliación Manual">
-                <div className="space-y-1.1">
-                  <FilaResumen etiqueta="Dinero Recibido por playero" valor={cabecera.declarado_billetera_recibido} />
-                  <FilaResumen etiqueta="Dinero Entregado por playero" valor={cabecera.declarado_billetera_entregado} />
-                  <FilaResumen etiqueta="Dif. Billetera" valor={cabecera.declarado_billetera_entregado - cabecera.declarado_billetera_recibido} />
-               {creditos && creditos.length > 0 ? (
-                        creditos.map((credito, index) => (
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3 mb-4">
+            <div className="bg-teal-100 p-3 rounded-xl"><h4 className="font-semibold text-teal-800 text-xs">Total Bruto</h4><p className="text-lg font-bold text-teal-900">{formatearMoneda(cabecera.total_bruto)}</p></div>
+            <div className="bg-blue-100 p-3 rounded-xl"><h4 className="font-semibold text-blue-800 text-xs">Total a Rendir</h4><p className="text-lg font-bold text-blue-900">{formatearMoneda(cabecera.total_a_rendir)}</p></div>
+            <div className="bg-red-100 p-3 rounded-xl"><h4 className="font-semibold text-red-800 text-xs">Faltante</h4><p className="text-lg font-bold text-red-900">{formatearMoneda(cabecera.total_faltante)}</p></div>
+            <div className="bg-indigo-100 p-3 rounded-xl"><h4 className="font-semibold text-indigo-800 text-xs">Total Remitos</h4><p className="text-lg font-bold text-indigo-900">{formatearMoneda(cabecera.total_remitos)}</p></div>
+            <div className="bg-orange-100 p-3 rounded-xl"><h4 className="font-semibold text-orange-800 text-xs">Total Gastos</h4><p className="text-lg font-bold text-orange-900">{formatearMoneda(cabecera.total_gastos)}</p></div>
+          </div>
 
-                  <FilaResumen etiqueta={credito.item}valor={(credito.importe)} />
-
-     ))
-                    ) : (
-                        <p className="text-xs text-gray-500 text-center italic mt-1">No se registraron créditos manuales.</p>
-                    )}
-             
-                </div>
-                
-           
-                {/* --- FIN: Detalle de Créditos Manuales --- */}
-              </Bloque>
-
-              <Bloque titulo="Resumen del Cierre Z">
-                  <div className="space-y-1.5">
-                      <FilaResumen etiqueta="Venta Bruta" valor={cabecera.total_bruto} color="text-blue-600" />
-                      <FilaResumen etiqueta="Total Remitos" valor={cabecera.total_remitos} />
-                      <FilaResumen etiqueta="Total Cupones" valor={cabecera.total_cupones} />
-                      <FilaResumen etiqueta="Total MercadoPago" valor={cabecera.total_mercadopago} />
-                      <FilaResumen etiqueta="Total Tiradas" valor={cabecera.total_tiradas} />
-                      <FilaResumen etiqueta="Total Gastos" valor={cabecera.total_gastos} />
-                      <FilaResumen etiqueta="Total Axion ON" valor={cabecera.total_axion_on} />
-                  </div>
-              </Bloque>
-
-              <Bloque titulo="Retiros de Personal" total={retiros.reduce((acc, r) => acc + Number(r.monto), 0)}>
-                <Tabla headers={["Empleado", "Monto"]} data={retiros} renderRow={(r, i) => (<tr key={i}><td className="p-1.5">{r.nombre_empleado}</td><td className="p-1.5 text-right">{formatearMoneda(r.monto)}</td></tr>)}/>
-              </Bloque>
+          {/* --- CORRECCIÓN CLAVE: Se añade '|| []' a cada array --- */}
+          {/* Esto asegura que si un array es undefined, se use un array vacío, evitando el error. */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            <div className="flex flex-col gap-4">
+                <DetalleSeccion titulo="Remitos" items={detalle.remitos || []} columnas={columnasRemitos} />
+                <DetalleSeccion titulo="Gastos" items={detalle.gastos || []} columnas={columnasMovimientos} />
+                <DetalleSeccion titulo="Ingresos" items={detalle.ingresos || []} columnas={columnasMovimientos} />
+                <DetalleSeccion titulo="Ventas por Producto" items={detalle.ventasPorProducto || []} columnas={columnasGenericas} />
+                <DetalleSeccion titulo="Bajas por Producto" items={detalle.bajasPorProducto || []} columnas={columnasGenericas} />
             </div>
-            
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-              <Bloque titulo="Ventas de Combustible" total={cierre.ventasCombustible.reduce((acc, item) => acc + Number(item.importe), 0)}>
-                 <Tabla headers={["Producto", "Litros", "Importe"]} data={cierre.ventasCombustible} renderRow={(v, i) => (<tr key={i}><td className="p-1.5">{v.producto_nombre}</td><td className="p-1.5">{(Number(v.litros) || 0).toFixed(2)}</td><td className="p-1.5 text-right">{formatearMoneda(v.importe)}</td></tr>)}/>
-              </Bloque>
-              <Bloque titulo="Ventas Shop" total={cierre.ventasShop.reduce((acc, item) => acc + Number(item.importe), 0)}>
-                 <Tabla headers={["Producto", "Cant.", "Importe"]} data={cierre.ventasShop} renderRow={(v, i) => (<tr key={i}><td className="p-1.5">{v.producto_nombre}</td><td className="p-1.5">{v.cantidad}</td><td className="p-1.5 text-right">{formatearMoneda(v.importe)}</td></tr>)}/>
-              </Bloque>
-              <Bloque titulo="Remitos" total={cabecera.total_remitos}>
-                 <Tabla headers={["Cliente", "Monto"]} data={cierre.remitos} renderRow={(r, i) => (<tr key={i}><td className="p-1.5">{r.cliente_nombre}</td><td className="p-1.5 text-right">{formatearMoneda(r.monto)}</td></tr>)}/>
-              </Bloque>
+            <div className="flex flex-col gap-4">
+                <DetalleSeccion titulo="Cupones (Tarjetas)" items={detalle.cupones || []} columnas={columnasGenericas} />
+                <DetalleSeccion titulo="MercadoPago" items={detalle.mercadoPago || []} columnas={columnasGenericas} />
+                <DetalleSeccion titulo="Axion ON" items={detalle.axionOn || []} columnas={columnasGenericas} />
+                <DetalleSeccion titulo="Tiradas" items={detalle.tiradas || []} columnas={columnasGenericas} />
+                <DetalleSeccion titulo="Percepciones IIBB" items={detalle.percepcionesIIBB || []} columnas={columnasGenericas} />
+                <DetalleSeccion titulo="Detalle de Tanques" items={detalle.detalleTanques || []} columnas={columnasTanques} />
             </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-              <Bloque titulo="Cupones (Tarjetas)" total={cabecera.total_cupones}>
-                 <Tabla headers={["Descripción", "Monto"]} data={getMovimientosPorTipo('TARJETAS')} renderRow={(m, i) => (<tr key={i}><td className="p-1.5">{m.descripcion}</td><td className="p-1.5 text-right">{formatearMoneda(m.monto)}</td></tr>)}/>
-              </Bloque>
-              <Bloque titulo="MercadoPago" total={cabecera.total_mercadopago}>
-                 <Tabla headers={["Descripción", "Monto"]} data={getMovimientosPorTipo('MERCADOPAGO')} renderRow={(m, i) => (<tr key={i}><td className="p-1.5">{m.descripcion}</td><td className="p-1.5 text-right">{formatearMoneda(m.monto)}</td></tr>)}/>
-              </Bloque>
-               <Bloque titulo="AXION ON" total={cabecera.total_axion_on}>
-                 <Tabla headers={["Descripción", "Monto"]} data={getMovimientosPorTipo('AXION_ON')} renderRow={(m, i) => (<tr key={i}><td className="p-1.5">{m.descripcion}</td><td className="p-1.5 text-right">{formatearMoneda(m.monto)}</td></tr>)}/>
-              </Bloque>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-              <Bloque titulo="Gastos" total={cabecera.total_gastos}>
-                 <Tabla headers={["Descripción", "Monto"]} data={getMovimientosPorTipo('GASTOS')} renderRow={(m, i) => (<tr key={i}><td className="p-1.5">{m.descripcion}</td><td className="p-1.5 text-right">{formatearMoneda(m.monto)}</td></tr>)}/>
-              </Bloque>
-              <Bloque titulo="Tiradas" total={cabecera.total_tiradas}>
-                 <Tabla headers={["Descripción", "Monto"]} data={getMovimientosPorTipo('TIRADAS')} renderRow={(m, i) => (<tr key={i}><td className="p-1.5">{m.descripcion}</td><td className="p-1.5 text-right">{formatearMoneda(m.monto)}</td></tr>)}/>
-              </Bloque>
-              <Bloque titulo="Percepciones IIBB" total={cierre.movimientosCaja.filter(m => m.tipo === 'PERCEPCIONES_IIBB').reduce((acc, m) => acc + Number(m.monto), 0)}>
-                 <Tabla headers={["Descripción", "Monto"]} data={getMovimientosPorTipo('PERCEPCIONES_IIBB')} renderRow={(m, i) => (<tr key={i}><td className="p-1.5">{m.descripcion}</td><td className="p-1.5 text-right">{formatearMoneda(m.monto)}</td></tr>)}/>
-              </Bloque>
-            </div>
-
           </div>
         </div>
       </div>

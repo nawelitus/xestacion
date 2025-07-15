@@ -1,134 +1,222 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import { obtenerDetallePorId } from '../services/cierreService';
-import { ArrowLeft, Loader, AlertTriangle, Calendar, Clock, User, Hash, FileText, ShoppingCart, Fuel, ArrowDownRight, ClipboardList, CreditCard, Send, Users, Sparkles } from 'lucide-react';
+import { ArrowLeft, FileText, Calendar, User, Clock, AlertTriangle, CheckCircle } from 'lucide-react';
 
-const formatearMoneda = (monto) => new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS' }).format(monto || 0);
-const formatearFecha = (fechaISO) => new Date(fechaISO).toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit', year: 'numeric' });
+const formatearMoneda = (valor) => {
+  return new Intl.NumberFormat('es-AR', {
+    style: 'currency',
+    currency: 'ARS',
+  }).format(valor || 0);
+};
 
-const TarjetaResumen = ({ titulo, valor, icono }) => (
-  <div className="bg-primario p-4 rounded-lg flex items-center gap-4 border border-borde">
-    <div className="text-blue-400 p-2 rounded-md">{icono}</div>
-    <div>
-      <p className="text-sm text-texto-secundario">{titulo}</p>
-      <p className="text-lg font-bold text-texto-principal">{valor}</p>
+const formatearFecha = (fechaString) => {
+  if (!fechaString) return 'N/A';
+  const fecha = new Date(fechaString);
+  fecha.setDate(fecha.getDate() + 1);
+  return fecha.toLocaleDateString('es-AR', {
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+  });
+};
+
+const DetalleSeccion = ({ titulo, items, columnas }) => {
+  if (!items || items.length === 0) {
+    return null;
+  }
+
+  return (
+    <div className="bg-white p-4 rounded-xl shadow-md border border-gray-200">
+      <h3 className="text-lg font-semibold text-gray-800 mb-3 border-b pb-2">{titulo}</h3>
+      <div className="overflow-x-auto">
+        <table className="min-w-full divide-y divide-gray-200">
+          <thead className="bg-gray-50">
+            <tr>
+              {columnas.map((col) => (
+                <th key={col.key} scope="col" className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  {col.header}
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody className="bg-white divide-y divide-gray-200">
+            {items.map((item, index) => (
+              <tr key={index} className="hover:bg-gray-50">
+                {columnas.map((col) => (
+                  <td key={`${index}-${col.key}`} className="px-4 py-3 whitespace-nowrap text-sm text-gray-700">
+                    {col.isCurrency ? formatearMoneda(item[col.key]) : item[col.key]}
+                  </td>
+                ))}
+              </tr>
+            ))}
+          </tbody>
+           <tfoot>
+            <tr>
+              <td colSpan={columnas.length - 1} className="px-4 py-2 text-right text-sm font-bold text-gray-800">TOTAL</td>
+              <td className="px-4 py-2 text-left text-sm font-bold text-gray-900">
+                {formatearMoneda(items.reduce((acc, item) => acc + (parseFloat(item.importe) || parseFloat(item.monto) || 0), 0))}
+              </td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
     </div>
-  </div>
-);
-
-const SeccionContenedor = ({ titulo, icono, children, total }) => (
-    <div className="bg-primario p-6 rounded-lg border border-borde flex flex-col">
-        <div className="flex items-center justify-between gap-3 mb-4">
-            <div className="flex items-center gap-3">
-                {React.cloneElement(icono, { className: 'text-texto-secundario' })}
-                <h2 className="text-xl font-semibold text-texto-principal">{titulo}</h2>
-            </div>
-            {total !== undefined && (
-                <span className="text-lg font-bold text-acento-1">{formatearMoneda(total)}</span>
-            )}
-        </div>
-        <div className="flex-grow overflow-y-auto max-h-96">{children}</div>
-    </div>
-);
-
-const TablaGenerica = ({ headers, data, renderRow, sinDatosMensaje }) => (
-  <div className="overflow-x-auto">
-    <table className="w-full text-sm text-left">
-      <thead className="bg-secundario text-xs text-texto-secundario uppercase sticky top-0">
-        <tr>{headers.map(h => <th key={h} className="px-4 py-3">{h}</th>)}</tr>
-      </thead>
-      <tbody className="divide-y divide-borde">
-        {data.length > 0 ? data.map(renderRow) : <tr><td colSpan={headers.length} className="text-center py-8 text-texto-secundario">{sinDatosMensaje}</td></tr>}
-      </tbody>
-    </table>
-  </div>
-);
+  );
+};
 
 const CierreDetalle = () => {
   const { id } = useParams();
+  const navigate = useNavigate();
   const [cierre, setCierre] = useState(null);
-  const [estaCargando, setEstaCargando] = useState(true);
-  const [error, setError] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
 
   useEffect(() => {
-    const cargarDetalle = async () => {
+    const obtenerDetalles = async () => {
       try {
-        setEstaCargando(true); setError(null);
-        const datos = await obtenerDetallePorId(id);
-        setCierre(datos);
+        setLoading(true);
+        const data = await obtenerDetallePorId(id);
+        setCierre(data);
       } catch (err) {
-        setError(err.response?.status === 404 ? 'Cierre no encontrado.' : 'No se pudo cargar el detalle.');
+        setError('No se pudieron cargar los detalles del cierre. Por favor, intente de nuevo.');
+        console.error(err);
       } finally {
-        setEstaCargando(false);
+        setLoading(false);
       }
     };
-    cargarDetalle();
+    obtenerDetalles();
   }, [id]);
 
-  if (estaCargando) return <div className="flex justify-center items-center h-64"><Loader className="animate-spin text-blue-500" size={48} /></div>;
-  if (error) return (
-    <div className="text-center py-10"><AlertTriangle className="mx-auto text-red-400" size={48} /><h2 className="mt-4 text-xl font-semibold">{error}</h2></div>
-  );
-  if (!cierre) return null;
+  if (loading) {
+    return <div className="flex justify-center items-center h-screen"><p>Cargando detalles del cierre...</p></div>;
+  }
 
-  const { cabecera, ventasCombustible, ventasShop, movimientosCaja, remitos } = cierre;
-  const getMovimientosPorTipo = (tipo) => movimientosCaja.filter(m => m.tipo.toLowerCase() === tipo.toLowerCase());
+  if (error) {
+    return <div className="text-center text-red-500 mt-10">{error}</div>;
+  }
+
+  if (!cierre) {
+    return <div className="text-center mt-10">No se encontraron datos para este cierre.</div>;
+  }
+
+  const { cabecera } = cierre;
+  
+  const columnasGenericas = [
+    { header: 'Descripción', key: 'descripcion' },
+    { header: 'Importe', key: 'importe', isCurrency: true },
+  ];
+  
+  // --- DEFINICIÓN DE COLUMNAS CORREGIDA ---
+  const columnasRemitos = [
+    { header: 'Nº Remito', key: 'concepto' }, // 'concepto' ahora contiene el número de remito
+    { header: 'Cliente', key: 'cliente_nombre' },
+    { header: 'Importe', key: 'importe', isCurrency: true },
+  ];
+
+   const columnasMovimientos = [
+    { header: 'Comprobante', key: 'comprobante_nro' },
+    { header: 'Descripción', key: 'descripcion' },
+    { header: 'Importe', key: 'importe', isCurrency: true },
+  ];
+  const columnasTanques = [
+    { header: 'N° Tanque', key: 'numero_tanque' },
+    { header: 'Producto', key: 'producto' },
+    { header: 'Despachado (Lts)', key: 'despachado' },
+  ];
+
   return (
-    <div className="space-y-8">
-      <div>
-        <Link to="/dashboard" className="inline-flex items-center gap-2 text-sm text-blue-400 hover:underline mb-4"><ArrowLeft size={16} /> Volver</Link>
-        <h1 className="text-3xl font-bold">Detalle del Cierre Z N° {cabecera.numero_z}</h1>
-        <div className="flex flex-wrap items-center gap-x-6 gap-y-2 mt-2 text-texto-secundario text-sm">
-          <span className="flex items-center gap-2"><Calendar size={14} /> {formatearFecha(cabecera.fecha_turno)}</span>
-          <span className="flex items-center gap-2"><Clock size={14} /> {cabecera.hora_inicio} - {cabecera.hora_fin}</span>
-          <span className="flex items-center gap-2"><User size={14} /> Cargado por: {cabecera.usuario_carga_nombre}</span>
+    <div className="p-4 bg-gray-50 min-h-screen">
+      <div className="max-w-7xl mx-auto">
+        <button
+          onClick={() => navigate('/cierres-z')}
+          className="flex items-center gap-2 mb-4 text-sm font-semibold text-blue-600 hover:text-blue-800 transition-colors"
+        >
+          <ArrowLeft size={18} />
+          Volver a la lista de Cierres
+        </button>
+
+        <div className="bg-white p-5 rounded-xl shadow-md border border-gray-200 mb-6">
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+            <div>
+              <h1 className="text-2xl font-bold text-gray-900">
+                Detalle del Cierre Z N° {cabecera.numero_z}
+              </h1>
+              <p className="text-sm text-gray-500 mt-1">
+                Cargado por {cabecera.usuario_carga_nombre} el {new Date(cabecera.fecha_carga).toLocaleString('es-AR')}
+              </p>
+            </div>
+             <div className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium ${cabecera.caja_procesada ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}`}>
+              {cabecera.caja_procesada ? <CheckCircle size={14} /> : <AlertTriangle size={14} />}
+              <span>{cabecera.caja_procesada ? 'Caja Procesada' : 'Pendiente de Procesar'}</span>
+            </div>
+          </div>
+          <div className="mt-4 border-t pt-4 grid grid-cols-2 sm:grid-cols-4 gap-4 text-sm">
+            <div className="flex items-center gap-2">
+              <Calendar className="text-blue-500" size={18} />
+              <div>
+                <p className="font-semibold text-gray-800">Fecha del Turno</p>
+                <p className="text-gray-600">{formatearFecha(cabecera.fecha_turno)}</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              <Clock className="text-blue-500" size={18} />
+              <div>
+                <p className="font-semibold text-gray-800">Horario</p>
+                <p className="text-gray-600">{cabecera.hora_inicio} - {cabecera.hora_fin}</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              <User className="text-blue-500" size={18} />
+              <div>
+                <p className="font-semibold text-gray-800">Cerrado por</p>
+                <p className="text-gray-600">{cabecera.cerrado_por}</p>
+              </div>
+            </div>
+          </div>
         </div>
-      </div>
 
-      <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-4 gap-4">
-        <TarjetaResumen titulo="Total Bruto" valor={formatearMoneda(cabecera.total_bruto)} icono={<FileText />} />
-        <TarjetaResumen titulo="Total a Rendir" valor={formatearMoneda(cabecera.total_a_rendir)} icono={<Hash />} />
-        <TarjetaResumen titulo="Total Remitos" valor={formatearMoneda(cabecera.total_remitos)} icono={<ClipboardList />} />
-        <TarjetaResumen titulo="Total Gastos" valor={formatearMoneda(cabecera.total_gastos)} icono={<ArrowDownRight />} />
-        <TarjetaResumen titulo="Total Cupones" valor={formatearMoneda(cabecera.total_cupones)} icono={<CreditCard />} />
-        <TarjetaResumen titulo="Total MercadoPago" valor={formatearMoneda(cabecera.total_mercadopago)} icono={<Send />} />
-        <TarjetaResumen titulo="Total Tiradas" valor={formatearMoneda(cabecera.total_tiradas)} icono={<Users />} />
-        <TarjetaResumen titulo="Total Axion ON" valor={formatearMoneda(cabecera.total_axion_on)} icono={<Sparkles />} />
-      </div>
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 mb-6">
+            <div className="bg-teal-100 p-4 rounded-xl shadow">
+                <h4 className="font-semibold text-teal-800 text-sm">Total Bruto</h4>
+                <p className="text-xl font-bold text-teal-900">{formatearMoneda(cabecera.total_bruto)}</p>
+            </div>
+            <div className="bg-blue-100 p-4 rounded-xl shadow">
+                <h4 className="font-semibold text-blue-800 text-sm">Total a Rendir</h4>
+                <p className="text-xl font-bold text-blue-900">{formatearMoneda(cabecera.total_a_rendir)}</p>
+            </div>
+            <div className="bg-red-100 p-4 rounded-xl shadow">
+                <h4 className="font-semibold text-red-800 text-sm">Faltante</h4>
+                <p className="text-xl font-bold text-red-900">{formatearMoneda(cabecera.total_faltante)}</p>
+            </div>
+            <div className="bg-indigo-100 p-4 rounded-xl shadow">
+                <h4 className="font-semibold text-indigo-800 text-sm">Total Remitos</h4>
+                <p className="text-xl font-bold text-indigo-900">{formatearMoneda(cabecera.total_remitos)}</p>
+            </div>
+            <div className="bg-orange-100 p-4 rounded-xl shadow">
+                <h4 className="font-semibold text-orange-800 text-sm">Total Gastos</h4>
+                <p className="text-xl font-bold text-orange-900">{formatearMoneda(cabecera.total_gastos)}</p>
+            </div>
+        </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          <SeccionContenedor titulo="Ventas de Combustible" icono={<Fuel />} total={ventasCombustible.reduce((acc, item) => acc + Number(item.importe), 0)}>
-            <TablaGenerica headers={['Producto', 'Litros', 'Importe']} data={ventasCombustible} sinDatosMensaje="Sin ventas de combustible."
-              renderRow={(item) => (<tr key={item.id}><td className="px-4 py-2 font-medium">{item.producto_nombre}</td><td>{item.litros} Lts</td><td className="text-right">{formatearMoneda(item.importe)}</td></tr>)} />
-          </SeccionContenedor>
-          <SeccionContenedor titulo="Ventas del Shop" icono={<ShoppingCart />} total={ventasShop.reduce((acc, item) => acc + Number(item.importe), 0)}>
-            <TablaGenerica headers={['Producto', 'Cant.', 'Importe']} data={ventasShop} sinDatosMensaje="Sin ventas en el Shop."
-              renderRow={(item) => (<tr key={item.id}><td className="px-4 py-2 font-medium">{item.producto_nombre}</td><td>{item.cantidad}</td><td className="text-right">{formatearMoneda(item.importe)}</td></tr>)} />
-          </SeccionContenedor>
-          <SeccionContenedor titulo="Remitos" icono={<ClipboardList />} total={cabecera.total_remitos}>
-            <TablaGenerica headers={['Cliente', 'Comprobante', 'Monto']} data={remitos} sinDatosMensaje="Sin remitos generados."
-              renderRow={(item) => (<tr key={item.id}><td className="px-4 py-2 font-medium">{item.cliente_nombre}</td><td>{item.concepto}</td><td className="text-right">{formatearMoneda(item.monto)}</td></tr>)} />
-          </SeccionContenedor>
-          <SeccionContenedor titulo="Cupones (Tarjetas)" icono={<CreditCard />} total={cabecera.total_cupones}>
-            <TablaGenerica headers={['Descripción', 'Monto']} data={getMovimientosPorTipo('TARJETAS')} sinDatosMensaje="Sin cupones registrados."
-              renderRow={(item) => (<tr key={item.id}><td className="px-4 py-2 font-medium">{item.descripcion}</td><td className="text-right">{formatearMoneda(item.monto)}</td></tr>)} />
-          </SeccionContenedor>
-          <SeccionContenedor titulo="MercadoPago" icono={<Send />} total={cabecera.total_mercadopago}>
-            <TablaGenerica headers={['Descripción', 'Monto']} data={getMovimientosPorTipo('MERCADOPAGO')} sinDatosMensaje="Sin movimientos de MercadoPago."
-              renderRow={(item) => (<tr key={item.id}><td className="px-4 py-2 font-medium">{item.descripcion}</td><td className="text-right">{formatearMoneda(item.monto)}</td></tr>)} />
-          </SeccionContenedor>
-           <SeccionContenedor titulo="Tiradas (Retiros)" icono={<Users />} total={cabecera.total_tiradas}>
-            <TablaGenerica headers={['Descripción', 'Comprobante', 'Monto']} data={getMovimientosPorTipo('TIRADAS')} sinDatosMensaje="Sin tiradas registradas."
-              renderRow={(item) => (<tr key={item.id}><td className="px-4 py-2 font-medium">{item.descripcion}</td><td>{item.comprobante_nro}</td><td className="text-right">{formatearMoneda(item.monto)}</td></tr>)} />
-          </SeccionContenedor>
-           <SeccionContenedor titulo="Axion ON" icono={<Sparkles />} total={cabecera.total_axion_on}>
-            <TablaGenerica headers={['Descripción', 'Monto']} data={getMovimientosPorTipo('AXION_ON')} sinDatosMensaje="Sin movimientos de Axion ON."
-              renderRow={(item) => (<tr key={item.id}><td className="px-4 py-2 font-medium">{item.descripcion}</td><td className="text-right">{formatearMoneda(item.monto)}</td></tr>)} />
-          </SeccionContenedor>
-           <SeccionContenedor titulo="Gastos" icono={<ArrowDownRight />} total={cabecera.total_gastos}>
-            <TablaGenerica headers={['Descripción', 'Comprobante', 'Monto']} data={getMovimientosPorTipo('GASTOS')} sinDatosMensaje="Sin gastos registrados."
-              renderRow={(item) => (<tr key={item.id}><td className="px-4 py-2 font-medium">{item.descripcion}</td><td>{item.comprobante_nro}</td><td className="text-right">{formatearMoneda(item.monto)}</td></tr>)} />
-          </SeccionContenedor>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div className="flex flex-col gap-6">
+                <DetalleSeccion titulo="Remitos" items={cierre.remitos} columnas={columnasRemitos} />
+                <DetalleSeccion titulo="Gastos" items={cierre.gastos} columnas={columnasMovimientos} />
+                <DetalleSeccion titulo="Ingresos" items={cierre.ingresos} columnas={columnasMovimientos} />
+                <DetalleSeccion titulo="Ventas por Producto" items={cierre.ventasPorProducto} columnas={columnasGenericas} />
+                <DetalleSeccion titulo="Bajas por Producto" items={cierre.bajasPorProducto} columnas={columnasGenericas} />
+            </div>
+            <div className="flex flex-col gap-6">
+                <DetalleSeccion titulo="Cupones (Tarjetas)" items={cierre.cupones} columnas={columnasGenericas} />
+                <DetalleSeccion titulo="MercadoPago" items={cierre.mercadoPago} columnas={columnasGenericas} />
+                <DetalleSeccion titulo="Axion ON" items={cierre.axionOn} columnas={columnasGenericas} />
+                <DetalleSeccion titulo="Tiradas" items={cierre.tiradas} columnas={columnasGenericas} />
+                <DetalleSeccion titulo="Percepciones IIBB" items={cierre.percepcionesIIBB} columnas={columnasGenericas} />
+                <DetalleSeccion titulo="Detalle de Tanques" items={cierre.detalleTanques} columnas={columnasTanques} />
+            </div>
+        </div>
+
       </div>
     </div>
   );

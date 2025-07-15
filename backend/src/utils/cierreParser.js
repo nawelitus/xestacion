@@ -1,191 +1,204 @@
-// ================================================================
-// ARCHIVO: src/utils/cierreParser.js (Versión Corregida)
-//
-// CAMBIOS REALIZADOS:
-// 1. Se reemplazó la expresión regular frágil de 'VENTAS_SHOP' por
-//    una lógica de análisis de texto más robusta para manejar
-//    nombres de producto complejos.
-// 2. Se corrigió un error en la sección 'MERCADOPAGO' que impedía
-//    leer montos sin descripción.
-// ================================================================
-
-const parsearNumero = (str) => {
-  if (typeof str !== 'string') return 0;
-  // Elimina los separadores de miles (comas) antes de convertir a número
-  const stringLimpio = str.replace(/,/g, '');
-  return parseFloat(stringLimpio) || 0;
-};
-
-export const parsearCierreZ = (textoCrudo) => {
-    const lineas = textoCrudo.split(/\r?\n/);
-    const resultado = {
-        cabecera: {},
-        resumenCaja: {
-            total_bruto: 0,
-            total_remitos: 0,
-            total_gastos: 0,
-            total_a_rendir: 0,
-            total_faltante: 0,
-            total_cupones: 0,
-            total_mercadopago: 0,
-            total_tiradas: 0,
-            total_axion_on: 0
+/**
+ * Parsea el texto de un cierre de turno Z y lo convierte en un objeto JSON estructurado.
+ * Esta es la versión completa del usuario con las correcciones de errores aplicadas.
+ * @param {string} textoCierre - El contenido completo del archivo de cierre Z como un string.
+ * @returns {object} Un objeto con todos los datos parseados y una sección de validación.
+ */
+export const parsearCierreZ = (textoCierre) => {
+    // Objeto principal que contendrá toda la información estructurada.
+    const datosCierre = {
+        encabezado: {
+            numero_z: null,
+            fecha_turno: '1970-01-01',
+            hora_inicio: '00:00:00',
+            hora_fin: '00:00:00',
+            cerrado_por: 'No especificado'
         },
-        empleados: [],
-        ventasCombustible: [],
-        ventasShop: [],
+        resumen: [],
+        ventasPorProducto: [],
         remitos: [],
+        bajasPorProducto: [],
         percepcionesIIBB: [],
-        movimientosCaja: [],
+        cupones: [],
+        mercadoPago: [],
+        tiradas: [],
+        ingresos: [],
+        axionOn: [],
+        gastos: [],
+        detalleTanques: [],
+        declaracionEmpleado: {},
+        validaciones: {},
+        errores: []
     };
 
+    const lineas = textoCierre.split('\n').map(l => l.trim());
     let seccionActual = '';
-    let capturandoEmpleados = false;
+
+    const limpiarImporte = (textoImporte) => {
+        if (!textoImporte) return 0;
+        const textoLimpio = textoImporte.replace(/\$/g, '').replace(/,/g, '').trim();
+        const valor = parseFloat(textoLimpio);
+        return isNaN(valor) ? 0 : valor;
+    };
+
+    const encabezados = {
+        '<<<<< CIERRE DE TURNO >>>>>': 'RESUMEN',
+        '========= VENTAS POR PRODUCTO ==========': 'VENTAS_PRODUCTO',
+        '========= DETALLE DE REMITOS ===========': 'REMITOS',
+        '========= BAJAS POR PRODUCTO ===========': 'BAJAS_PRODUCTO',
+        '======== PERCEPCIONES DE IIBB ==========': 'PERCEPCIONES_IIBB',
+        '=============== CUPONES ================': 'CUPONES',
+        '========= DETALLE MERCADOPAGO ==========': 'MERCADOPAGO',
+        '========= DETALLE DE TIRADAS ===========': 'TIRADAS',
+        '========= DETALLE DE INGRESOS ==========': 'INGRESOS',
+        '============== AXION ON ================': 'AXION_ON',
+        '========= DETALLE DE GASTOS ============': 'GASTOS',
+        '========= DETALLE DE TANQUES ===========': 'TANQUES',
+        '====== DECLARACION DEL EMPLEADO ========': 'DECLARACION_EMPLEADO'
+    };
 
     for (let i = 0; i < lineas.length; i++) {
-        const linea = lineas[i]; // No hacer trim aquí para preservar espacios
-        const lineaTrimmed = linea.trim();
+        const linea = lineas[i];
+        if (linea === '') continue;
 
-        if (lineaTrimmed.startsWith('Empleados:')) {
-            capturandoEmpleados = true;
+        if (encabezados[linea]) {
+            seccionActual = encabezados[linea];
             continue;
         }
 
-        if (capturandoEmpleados) {
-            if (lineaTrimmed.startsWith('=====')) {
-                capturandoEmpleados = false;
-            } else if (lineaTrimmed) {
-                resultado.empleados.push(lineaTrimmed);
-            }
-        }
-        
-        if (lineaTrimmed.match(/^TOTAL\s+[\d.,]+$/)) {
-            const montoTotal = parsearNumero(lineaTrimmed.match(/[\d.,]+$/)[0]);
-            switch (seccionActual) {
-                case 'TARJETAS':
-                    resultado.resumenCaja.total_cupones = montoTotal;
-                    break;
-                case 'MERCADOPAGO':
-                    resultado.resumenCaja.total_mercadopago = montoTotal;
-                    break;
-                case 'TIRADAS':
-                    resultado.resumenCaja.total_tiradas = montoTotal;
-                    break;
-                case 'AXION_ON':
-                    resultado.resumenCaja.total_axion_on = montoTotal;
-                    break;
-            }
-        }
-
-        if (lineaTrimmed.startsWith('=====')) {
-            if (lineaTrimmed.includes('TOTALES POR PRODUCTO')) seccionActual = 'VENTAS_COMBUSTIBLE';
-            else if (lineaTrimmed.includes('VENTAS POR PRODUCTO')) seccionActual = 'VENTAS_SHOP';
-            else if (lineaTrimmed.includes('DETALLE DE REMITOS')) seccionActual = 'REMITOS';
-            else if (lineaTrimmed.includes('PERCEPCIONES DE IIBB')) seccionActual = 'PERCEPCIONES_IIBB';
-            else if (lineaTrimmed.includes('DETALLE MERCADOPAGO')) seccionActual = 'MERCADOPAGO';
-            else if (lineaTrimmed.includes('CUPONES')) seccionActual = 'TARJETAS';
-            else if (lineaTrimmed.includes('DETALLE DE TIRADAS')) seccionActual = 'TIRADAS';
-            else if (lineaTrimmed.includes('DETALLE DE GASTOS')) seccionActual = 'GASTOS';
-            else if (lineaTrimmed.includes('AXION ON')) seccionActual = 'AXION_ON';
-            else if (lineaTrimmed.includes('DETALLE DE INGRESOS')) seccionActual = 'INGRESOS'; // Reconocer sección de ingresos
-            else seccionActual = '';
+        const seccionesOmitidas = [
+            '======== TOTALES POR PRODUCTO ==========', '====== DETALLE DE TOTALIZADORES ========',
+            '=== TICK FACT Y REM DE COMBUSTIBLE =====', '========== VENTAS POR RUBRO ============',
+            '========= CUPONES POR TARJETA ==========', '============= MEDICIONES ===============',
+            '====== TICK Y FACT POR EMPLEADO ========', '=== FACTURACION POR MEDIO DE PAGO ======'
+        ];
+        if (seccionesOmitidas.includes(linea)) {
+            seccionActual = 'OMITIR';
             continue;
         }
-        
-        if (seccionActual === '') {
-            if (lineaTrimmed.startsWith('Numero:')) resultado.cabecera.numero_z = parseInt(lineaTrimmed.split(':')[1].trim(), 10);
-            if (lineaTrimmed.startsWith('Desde:')) {
-                const [, fecha, hora] = lineaTrimmed.match(/(\d{1,2}\/\d{1,2}\/\d{4})\s+(\d{2}:\d{2}:\d{2})/);
-                resultado.cabecera.fecha_turno = fecha.split('/').reverse().join('-');
-                resultado.cabecera.hora_inicio = hora;
-            }
-            if (lineaTrimmed.startsWith('Hasta:')) {
-                const [, fecha, hora] = lineaTrimmed.match(/(\d{1,2}\/\d{1,2}\/\d{4})\s+(\d{2}:\d{2}:\d{2})/);
-                resultado.cabecera.hora_fin = hora;
-            }
-            if (lineaTrimmed.startsWith('Cerrado por:')) resultado.cabecera.cerrado_por = lineaTrimmed.split(':')[1].trim();
-            if (lineaTrimmed.startsWith('TOTAL BRUTO')) resultado.resumenCaja.total_bruto = parsearNumero(lineaTrimmed.match(/[\d.,]+$/)[0]);
-            if (lineaTrimmed.startsWith('-REMITOS')) resultado.resumenCaja.total_remitos = parsearNumero(lineaTrimmed.match(/[\d.,]+$/)[0]);
-            if (lineaTrimmed.startsWith('-GASTOS')) resultado.resumenCaja.total_gastos = parsearNumero(lineaTrimmed.match(/[\d.,]+$/)[0]);
-            if (lineaTrimmed.startsWith('TOTAL A RENDIR')) resultado.resumenCaja.total_a_rendir = parsearNumero(lineaTrimmed.match(/[\d.,]+$/)[0]);
-            if (lineaTrimmed.startsWith('FALTANTE')) resultado.resumenCaja.total_faltante = parsearNumero(lineaTrimmed.match(/[\d.,]+$/)[0]);
+
+        if (linea.startsWith('-----------------')) {
+            if (seccionActual !== 'RESUMEN') seccionActual = '';
+            continue;
         }
-        
+
+        if (seccionActual !== 'RESUMEN' && linea.toUpperCase().startsWith('TOTAL')) {
+            continue;
+        }
+
+        if (seccionActual === 'OMITIR') continue;
+
         switch (seccionActual) {
-            case 'VENTAS_COMBUSTIBLE':
-                const matchComb = lineaTrimmed.match(/^(\S+)\s+([\d.,]+)\s+([\d.,]+)$/);
-                if (matchComb) {
-                    const productoNombre = matchComb[1];
-                    if (productoNombre.toUpperCase() !== 'TOTAL') {
-                        resultado.ventasCombustible.push({ producto: productoNombre, litros: parsearNumero(matchComb[2]), importe: parsearNumero(matchComb[3]) });
+            case 'RESUMEN':
+                if (linea.startsWith('Numero:')) {
+                    datosCierre.encabezado.numero_z = parseInt(linea.split(':')[1]?.trim(), 10);
+                } else if (linea.startsWith('Desde:')) {
+                    const textoCompleto = linea.substring(linea.indexOf(':') + 1).trim();
+                    const partes = textoCompleto.split(' ');
+                    if (partes.length >= 2) {
+                        datosCierre.encabezado.fecha_turno = partes[0];
+                        datosCierre.encabezado.hora_inicio = partes[1];
                     }
-                }
-                break;
-            
-            // ================================================================
-            // LÓGICA CORREGIDA PARA VENTAS_SHOP
-            // ================================================================
-            case 'VENTAS_SHOP':
-                // Excluir la línea "TOTAL" y líneas vacías
-                if (lineaTrimmed && !lineaTrimmed.toUpperCase().startsWith('TOTAL') && !lineaTrimmed.startsWith('-')) {
-                    const lastSpaceIndex = lineaTrimmed.lastIndexOf(' ');
-                    if (lastSpaceIndex > -1) {
-                        const importeStr = lineaTrimmed.substring(lastSpaceIndex + 1);
-                        const importe = parsearNumero(importeStr);
-
-                        if (!isNaN(importe)) {
-                            const rest = lineaTrimmed.substring(0, lastSpaceIndex).trim();
-                            const firstSpaceIndex = rest.indexOf(' ');
-
-                            if (firstSpaceIndex > -1) {
-                                const cantidadStr = rest.substring(0, firstSpaceIndex);
-                                const cantidad = parseInt(cantidadStr, 10);
-                                
-                                if (!isNaN(cantidad)) {
-                                    const productoNombre = rest.substring(firstSpaceIndex + 1).trim();
-                                    resultado.ventasShop.push({ cantidad, producto: productoNombre, importe });
-                                }
-                            }
-                        }
+                } else if (linea.startsWith('Hasta:')) {
+                    const textoCompleto = linea.substring(linea.indexOf(':') + 1).trim();
+                    const partes = textoCompleto.split(' ');
+                    if (partes.length >= 2) {
+                        datosCierre.encabezado.hora_fin = partes[1];
                     }
+                } else if (linea.startsWith('Cerrado por:')) {
+                    datosCierre.encabezado.cerrado_por = linea.split(':')[1]?.trim();
+                } else {
+                    datosCierre.resumen.push(linea);
                 }
                 break;
 
+            // --- LÓGICA CORREGIDA Y ROBUSTA PARA REMITOS ---
             case 'REMITOS':
-                 const matchRemito = lineaTrimmed.match(/^(\S+-\S+)\s+(.+?)\s{2,}([\d.,]+)$/);
-                 if (matchRemito) {
-                    resultado.remitos.push({ comprobante: matchRemito[1], cliente_nombre: matchRemito[2].trim(), monto: parsearNumero(matchRemito[3]) });
+                {
+                    // Expresión regular para capturar las tres partes:
+                    // 1. El número del remito (ej: 00013-00010842)
+                    // 2. El nombre del cliente (puede tener espacios)
+                    // 3. El importe final
+                    const match = linea.match(/^(\S+)\s+(.+?)\s+([\d.]+)$/);
+                    if (match) {
+                        const [, numero_remito, cliente_nombre, importe_texto] = match;
+                        datosCierre.remitos.push({
+                            numero_remito: numero_remito.trim(),
+                            cliente_nombre: cliente_nombre.trim(),
+                            importe: limpiarImporte(importe_texto)
+                        });
+                    }
                 }
                 break;
 
+            case 'VENTAS_PRODUCTO':
+                 datosCierre.ventasPorProducto.push({descripcion: linea.slice(0, linea.lastIndexOf(' ')).trim(), importe: limpiarImporte(linea.slice(linea.lastIndexOf(' '))) });
+                 break;
+            case 'BAJAS_PRODUCTO': datosCierre.bajasPorProducto.push({descripcion: linea.slice(0, linea.lastIndexOf(' ')).trim(), importe: limpiarImporte(linea.slice(linea.lastIndexOf(' '))) }); break;
+            case 'PERCEPCIONES_IIBB': datosCierre.percepcionesIIBB.push({descripcion: linea.slice(0, linea.lastIndexOf(' ')).trim(), importe: limpiarImporte(linea.slice(linea.lastIndexOf(' '))) }); break;
+            case 'CUPONES': datosCierre.cupones.push({descripcion: linea.slice(0, linea.lastIndexOf(' ')).trim(), importe: limpiarImporte(linea.slice(linea.lastIndexOf(' '))) }); break;
+            case 'MERCADOPAGO': datosCierre.mercadoPago.push({descripcion: linea.slice(0, linea.lastIndexOf(' ')).trim(), importe: limpiarImporte(linea.slice(linea.lastIndexOf(' '))) }); break;
+            case 'TIRADAS': datosCierre.tiradas.push({descripcion: linea.slice(0, linea.lastIndexOf(' ')).trim(), importe: limpiarImporte(linea.slice(linea.lastIndexOf(' '))) }); break;
+            case 'AXION_ON': datosCierre.axionOn.push({descripcion: linea.slice(0, linea.lastIndexOf(' ')).trim(), importe: limpiarImporte(linea.slice(linea.lastIndexOf(' '))) }); break;
+            
+            case 'INGRESOS':
             case 'GASTOS':
-            case 'TIRADAS':
-            case 'INGRESOS': // Añadido para procesar ingresos como un movimiento de caja
-                const matchMov = lineaTrimmed.match(/^(\S+-\S+)\s+(.+?)\s{2,}([\d.,]+)$/);
-                if (matchMov) {
-                    let descripcion = matchMov[2].trim();
-                    if (lineas[i + 1] && lineas[i + 1].trim().match(/^[A-Za-z\s]+$/)) {
-                        descripcion += ` (${lineas[i + 1].trim()})`;
+                {
+                    if (/^\d/.test(linea)) {
+                        const partes = linea.split(/\s+/);
+                        const comprobante = partes[0];
+                        const importe = limpiarImporte(partes[partes.length - 1]);
+                        const descripcion = partes.slice(1, -1).join(' ');
+                        const item = { comprobante, descripcion, importe };
+                        if (seccionActual === 'INGRESOS') datosCierre.ingresos.push(item);
+                        else datosCierre.gastos.push(item);
                         i++;
                     }
-                    resultado.movimientosCaja.push({ tipo: seccionActual, comprobante: matchMov[1], descripcion, monto: parsearNumero(matchMov[3]) });
                 }
                 break;
 
-            // ================================================================
-            // LÓGICA CORREGIDA PARA PAGOS
-            // ================================================================
-            case 'MERCADOPAGO':
-            case 'TARJETAS':
-            case 'AXION_ON':
-                const matchPago = lineaTrimmed.match(/(.*?)\s{2,}([\d.,]+)$/);
-                if (matchPago && matchPago[1].trim().toUpperCase() !== 'TOTAL') {
-                    resultado.movimientosCaja.push({ tipo: seccionActual, comprobante: null, descripcion: matchPago[1].trim() || 'Sin descripción', monto: parsearNumero(matchPago[2]) });
-                } else if (lineaTrimmed.match(/^[\d.,]+$/)) { // Se usa lineaTrimmed
-                    resultado.movimientosCaja.push({ tipo: seccionActual, comprobante: null, descripcion: 'Sin descripción', monto: parsearNumero(lineaTrimmed) });
+            case 'TANQUES':
+                {
+                    const columnas = linea.split(/\s{2,}/);
+                    if (columnas.length >= 3 && !linea.toUpperCase().includes('KEROSENE')) {
+                        datosCierre.detalleTanques.push({
+                            numero: columnas[0],
+                            producto: columnas[1],
+                            despachado: limpiarImporte(columnas[columnas.length - 1])
+                        });
+                    }
+                }
+                break;
+            case 'DECLARACION_EMPLEADO':
+                {
+                    const [clave, valor] = linea.split(':');
+                    if (clave && valor) {
+                        const claveNormalizada = clave.trim().toLowerCase().replace(/ /g, '_');
+                        datosCierre.declaracionEmpleado[claveNormalizada] = limpiarImporte(valor);
+                    }
                 }
                 break;
         }
     }
-    return resultado;
+
+    const extraerTotalDelResumen = (textoABuscar) => {
+        const lineaResumen = datosCierre.resumen.find(l => l.toUpperCase().includes(textoABuscar.toUpperCase()));
+        if (!lineaResumen) return 0;
+        const indiceSeparador = Math.max(lineaResumen.lastIndexOf(':'), lineaResumen.lastIndexOf(' '));
+        if (indiceSeparador === -1) return 0;
+        const valorTexto = lineaResumen.substring(indiceSeparador + 1);
+        return limpiarImporte(valorTexto);
+    };
+
+    datosCierre.encabezado.total_bruto = extraerTotalDelResumen('TOTAL BRUTO');
+    datosCierre.encabezado.total_remitos = extraerTotalDelResumen('-REMITOS');
+    datosCierre.encabezado.total_gastos = extraerTotalDelResumen('-GASTOS');
+    datosCierre.encabezado.total_a_rendir = extraerTotalDelResumen('TOTAL A RENDIR');
+    datosCierre.encabezado.total_faltante = extraerTotalDelResumen('FALTANTE');
+    datosCierre.encabezado.total_cupones = extraerTotalDelResumen('TOTAL CUPONES');
+    datosCierre.encabezado.total_mercadopago = extraerTotalDelResumen('TOTAL MERCADOPAGO');
+    datosCierre.encabezado.total_axion_on = extraerTotalDelResumen('TOTAL AXION ON');
+    datosCierre.encabezado.total_tiradas = datosCierre.tiradas.reduce((sum, item) => sum + item.importe, 0);
+
+    return datosCierre;
 };

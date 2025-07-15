@@ -30,7 +30,8 @@ router.post(
     autorizarRol(['administrador', 'editor'])
   ],
   upload.single('archivoCierre'),
-  CierreController.subirYCargarCierre
+ CierreController.subirYProcesarCierre
+
 );
 
 // @route   GET api/cierres/

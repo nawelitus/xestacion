@@ -1,144 +1,143 @@
-// Contenido COMPLETO y ACTUALIZADO para: src/models/cierreModel.js
+// Contenido COMPLETO y CORREGIDO para: src/models/cierreModel.js
 
-import pool from '../config/db.js';
-import ClienteModel from './clienteModel.js';
+import db from '../config/db.js';
 
 const CierreModel = {
-  async insertarCierreCompleto(datosParseados) {
-    const connection = await pool.getConnection();
+
+  /**
+   * Ejecuta el Stored Procedure 'sp_insertar_cierre_completo' para guardar
+   * un cierre y todos sus detalles en una única transacción.
+   * @param {object} datosCierre - Objeto que contiene todos los parámetros para el SP.
+   * @returns {Promise<object>} - El resultado de la inserción, incluyendo el ID del nuevo cierre.
+   */
+  async insertarCierreCompleto(datosCierre) {
+    const {
+      numero_z, fecha_turno, hora_inicio, hora_fin, total_bruto,
+      total_remitos, total_gastos, total_a_rendir, total_faltante,
+      usuario_carga_id, cerrado_por, total_cupones, total_mercadopago,
+      total_tiradas, total_axion_on,
+      declarado_empleado_efectivo, declarado_empleado_tarjeta,
+      declarado_empleado_cheques, declarado_empleado_creditos, declarado_empleado_tickets,
+      ventas_producto_json, remitos_json, movimientos_caja_json,
+      cupones_json, bajas_producto_json, percepciones_iibb_json,
+      mercadopago_json, tiradas_json, axion_on_json, tanques_json
+    } = datosCierre;
+
+    // CORRECCIÓN: Se eliminó un '?' extra. Ahora hay 30 placeholders,
+    // que coinciden con los 30 parámetros del Stored Procedure.
+    const query = 'CALL sp_insertar_cierre_completo(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)';
+    
     try {
-      await connection.beginTransaction();
-      const remitosParaSp = [];
-      for (const remito of datosParseados.remitos) {
-        const clienteId = await ClienteModel.buscarOCrear(remito.cliente_nombre, connection);
-        remitosParaSp.push({
-          cliente_id: clienteId,
-          concepto: `Remito ${remito.comprobante}`,
-          monto: remito.monto,
-        });
-      }
-      const { cabecera, resumenCaja, ventasCombustible, ventasShop, movimientosCaja } = datosParseados;
-      const params = [
-        cabecera.numero_z, cabecera.fecha_turno, cabecera.hora_inicio, cabecera.hora_fin,
-        resumenCaja.total_bruto, resumenCaja.total_remitos, resumenCaja.total_gastos,
-        resumenCaja.total_a_rendir, resumenCaja.total_faltante, cabecera.usuario_carga_id,
-        cabecera.cerrado_por, 
-        resumenCaja.total_cupones, resumenCaja.total_mercadopago,
-        resumenCaja.total_tiradas, resumenCaja.total_axion_on,
-        JSON.stringify(ventasCombustible), JSON.stringify(ventasShop),
-        JSON.stringify(movimientosCaja), JSON.stringify(remitosParaSp)
-      ];
-      await connection.query('CALL sp_insertar_cierre_completo(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)', params);
-      
-      await connection.commit();
-      return { mensaje: `Cierre Z N° ${cabecera.numero_z} guardado exitosamente.` };
+      const [resultado] = await db.query(query, [
+        numero_z, fecha_turno, hora_inicio, hora_fin, total_bruto,
+        total_remitos, total_gastos, total_a_rendir, total_faltante,
+        usuario_carga_id, cerrado_por, total_cupones, total_mercadopago,
+        total_tiradas, total_axion_on,
+        declarado_empleado_efectivo, declarado_empleado_tarjeta,
+        declarado_empleado_cheques, declarado_empleado_creditos, declarado_empleado_tickets,
+        ventas_producto_json, remitos_json, movimientos_caja_json,
+        cupones_json, bajas_producto_json, percepciones_iibb_json,
+        mercadopago_json, tiradas_json, axion_on_json, tanques_json
+      ]);
+      // El SP devuelve el ID del cierre insertado
+      return resultado[0][0]; 
     } catch (error) {
-      await connection.rollback();
-      console.error("Error en la transacción del Cierre Z:", error);
-      throw new Error(`Error al guardar en la base de datos: ${error.message}`);
-    } finally {
-      connection.release();
+      console.error('Error en el modelo al insertar cierre completo:', error);
+      throw error;
     }
   },
 
+  /**
+   * Busca el detalle completo de un Cierre Z por su ID.
+   */
+  async buscarDetallePorId(id) {
+    const detalleCompleto = {};
+    const [cabeceras] = await db.query(
+      `SELECT cz.*, u.nombre_completo as usuario_carga_nombre 
+       FROM cierres_z cz 
+       JOIN usuarios u ON cz.usuario_carga_id = u.id 
+       WHERE cz.id = ?`,
+      [id]
+    );
+
+    if (cabeceras.length === 0) {
+      return null;
+    }
+    detalleCompleto.cabecera = cabeceras[0];
+
+    const [
+      ventasProducto, bajasProducto, percepcionesIIBB, mercadoPago,
+      tiradas, axionOn, tanques, cupones, movimientosCaja, remitos
+    ] = await Promise.all([
+      db.query('SELECT descripcion, importe FROM cierre_z_ventas_producto WHERE cierre_z_id = ?', [id]),
+      db.query('SELECT descripcion, importe FROM cierre_z_bajas_producto WHERE cierre_z_id = ?', [id]),
+      db.query('SELECT descripcion, importe FROM cierre_z_percepciones_iibb WHERE cierre_z_id = ?', [id]),
+      db.query('SELECT descripcion, importe FROM cierre_z_mercadopago WHERE cierre_z_id = ?', [id]),
+      db.query('SELECT descripcion, importe FROM cierre_z_tiradas WHERE cierre_z_id = ?', [id]),
+      db.query('SELECT descripcion, importe FROM cierre_z_axion_on WHERE cierre_z_id = ?', [id]),
+      db.query('SELECT numero_tanque, producto, despachado FROM cierre_z_tanques WHERE cierre_z_id = ?', [id]),
+      db.query('SELECT item as descripcion, importe FROM caja_diaria_creditos WHERE cierre_z_id = ?', [id]),
+      db.query('SELECT tipo, descripcion, comprobante_nro, monto as importe FROM movimientos_caja_z WHERE cierre_z_id = ?', [id]),
+      db.query(
+        `SELECT m.concepto, m.monto as importe, c.nombre as cliente_nombre 
+         FROM movimientos_cta_cte m 
+         JOIN clientes c ON m.cliente_id = c.id 
+         WHERE m.cierre_z_id = ?`,
+        [id]
+      )
+    ]);
+
+    detalleCompleto.ventasPorProducto = ventasProducto[0];
+    detalleCompleto.bajasPorProducto = bajasProducto[0];
+    detalleCompleto.percepcionesIIBB = percepcionesIIBB[0];
+    detalleCompleto.mercadoPago = mercadoPago[0];
+    detalleCompleto.tiradas = tiradas[0];
+    detalleCompleto.axionOn = axionOn[0];
+    detalleCompleto.detalleTanques = tanques[0];
+    detalleCompleto.cupones = cupones[0];
+    detalleCompleto.remitos = remitos[0];
+    detalleCompleto.gastos = movimientosCaja[0].filter(m => m.tipo === 'GASTO');
+    detalleCompleto.ingresos = movimientosCaja[0].filter(m => m.tipo === 'INGRESO');
+
+    return detalleCompleto;
+  },
+
+  /**
+   * Lista los cierres de caja más recientes.
+   */
   async listarRecientes() {
     const query = `
       SELECT 
-        cz.id, cz.numero_z, cz.fecha_turno, cz.total_a_rendir, cz.fecha_carga,
-        u.nombre_completo AS usuario_carga_nombre
+        cz.id, cz.numero_z, cz.fecha_turno, cz.total_a_rendir, 
+        cz.total_faltante, cz.caja_procesada, u.nombre_completo AS cargado_por 
       FROM cierres_z cz
       JOIN usuarios u ON cz.usuario_carga_id = u.id
-      ORDER BY cz.fecha_carga DESC
-      LIMIT 10;
+      ORDER BY cz.fecha_turno DESC, cz.id DESC
+      LIMIT 50;
     `;
     try {
-      const [rows] = await pool.query(query);
-      return rows;
+      const [cierres] = await db.query(query);
+      return cierres;
     } catch (error) {
-      console.error("Error al obtener los cierres recientes:", error);
-      throw new Error('Error al consultar los cierres en la base de datos.');
-    }
-  },
-  
-  async buscarDetallePorId(id) {
-    try {
-      const [cabeceraResult, ventasCombustible, ventasShop, movimientosCaja, remitos] = await Promise.all([
-        pool.query(`
-          SELECT cz.*, u.nombre_completo as usuario_carga_nombre
-          FROM cierres_z cz
-          JOIN usuarios u ON cz.usuario_carga_id = u.id
-          WHERE cz.id = ?
-        `, [id]),
-        pool.query('SELECT * FROM ventas_combustible_z WHERE cierre_z_id = ?', [id]),
-        pool.query('SELECT * FROM ventas_shop_z WHERE cierre_z_id = ?', [id]),
-        pool.query('SELECT * FROM movimientos_caja_z WHERE cierre_z_id = ?', [id]),
-        pool.query(`
-          SELECT m.*, c.nombre as cliente_nombre
-          FROM movimientos_cta_cte m
-          JOIN clientes c ON m.cliente_id = c.id
-          WHERE m.cierre_z_id = ?
-        `, [id])
-      ]);
-
-      if (cabeceraResult[0].length === 0) {
-        return null;
-      }
-
-      return {
-        cabecera: cabeceraResult[0][0],
-        ventasCombustible: ventasCombustible[0],
-        ventasShop: ventasShop[0],
-        movimientosCaja: movimientosCaja[0],
-        remitos: remitos[0]
-      };
-
-    } catch (error) {
-      console.error(`Error al buscar el detalle del cierre con ID ${id}:`, error);
-      throw new Error('Error al consultar el detalle del cierre en la base de datos.');
+      console.error('Error en el modelo al listar cierres recientes:', error);
+      throw error;
     }
   },
 
-  // ================================================================
-  // NUEVA FUNCIONALIDAD: Eliminar un Cierre Z completo
-  // ================================================================
   /**
-   * Elimina un Cierre Z y todos sus registros asociados de forma transaccional.
-   * @param {number} id - El ID del Cierre Z a eliminar.
-   * @returns {Promise<object>} Resultado de la operación.
+   * Elimina un Cierre Z por su ID.
    */
   async eliminarCierreCompletoPorId(id) {
-    const connection = await pool.getConnection();
+    const query = 'DELETE FROM cierres_z WHERE id = ?';
     try {
-      await connection.beginTransaction();
-
-      // El orden es importante para respetar las claves foráneas.
-      // Primero se eliminan los registros de las tablas hijas.
-      await connection.query('DELETE FROM ventas_combustible_z WHERE cierre_z_id = ?', [id]);
-      await connection.query('DELETE FROM ventas_shop_z WHERE cierre_z_id = ?', [id]);
-      await connection.query('DELETE FROM movimientos_caja_z WHERE cierre_z_id = ?', [id]);
-      await connection.query('DELETE FROM movimientos_cta_cte WHERE cierre_z_id = ?', [id]);
-      await connection.query('DELETE FROM caja_diaria_creditos WHERE cierre_z_id = ?', [id]);
-      await connection.query('DELETE FROM retiros_personal WHERE cierre_z_id = ?', [id]);
-      
-      // Finalmente, se elimina el registro de la tabla maestra.
-      const [resultado] = await connection.query('DELETE FROM cierres_z WHERE id = ?', [id]);
-
-      await connection.commit();
-
-      // Si affectedRows es 0, significa que no se encontró un cierre con ese ID.
+      const [resultado] = await db.query(query, [id]);
       if (resultado.affectedRows === 0) {
         throw new Error('No se encontró un Cierre Z con el ID proporcionado para eliminar.');
       }
-
-      return resultado;
-
+      return { mensaje: 'Cierre Z eliminado exitosamente.' };
     } catch (error) {
-      await connection.rollback();
-      console.error(`Error en la transacción de eliminación del Cierre Z con ID ${id}:`, error);
-      // Lanza el error para que el controlador lo capture.
-      throw error; 
-    } finally {
-      connection.release();
+      console.error('Error en el modelo al eliminar cierre:', error);
+      throw error;
     }
   }
 };

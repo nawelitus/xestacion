@@ -1,6 +1,52 @@
-import pool from '../config/db.js';
+// Contenido COMPLETO Y CORREGIDO para: src/models/clienteModel.js
+
+import pool from '../config/db.js'; // Usamos 'pool' como en tu archivo original.
 
 const ClienteModel = {
+
+  // ===================================================================================
+  // NUEVA FUNCIÓN REQUERIDA POR EL CONTROLADOR DE CIERRES
+  // Esta es la función que soluciona el error.
+  // ===================================================================================
+  /**
+   * Busca un cliente por su nombre. Si no lo encuentra, lo crea y lo devuelve.
+   * Esta función es autocontenida y no necesita una conexión externa.
+   * @param {string} nombre - El nombre completo del cliente a buscar o crear.
+   * @returns {Promise<object>} El objeto del cliente encontrado o recién creado.
+   */
+  async findOrCreateByName(nombre) {
+    if (!nombre || nombre.trim() === '') {
+      throw new Error('El nombre del cliente en el remito no puede estar vacío.');
+    }
+    const nombreNormalizado = nombre.trim();
+    try {
+      // Usamos el pool de conexiones directamente.
+      const [filas] = await pool.query('SELECT * FROM clientes WHERE nombre = ?', [nombreNormalizado]);
+      if (filas.length > 0) {
+        return filas[0]; // Cliente encontrado.
+      } else {
+        // Cliente no encontrado, lo creamos.
+        const [resultado] = await pool.query('INSERT INTO clientes (nombre) VALUES (?)', [nombreNormalizado]);
+        // Devolvemos el objeto del nuevo cliente.
+        return {
+          id: resultado.insertId,
+          nombre: nombreNormalizado,
+          cuit: null,
+          direccion: null,
+          email: null,
+          telefono: null
+        };
+      }
+    } catch (error) {
+      console.error(`Error en findOrCreateByName para el cliente "${nombreNormalizado}":`, error);
+      throw error;
+    }
+  },
+
+  // ===================================================================================
+  // FUNCIONES EXISTENTES (se mantienen intactas)
+  // ===================================================================================
+
   /**
    * Busca un cliente por su nombre. Si no lo encuentra, lo crea.
    * Usado internamente durante la carga de Cierres Z.
@@ -26,7 +72,6 @@ const ClienteModel = {
    * @returns {Promise<Array>} Un arreglo de objetos, cada uno representando un cliente y su saldo.
    */
   async listarConSaldos() {
-    // La vista ya nos da los saldos calculados de forma eficiente.
     const [filas] = await pool.query('SELECT * FROM vista_saldos_cta_cte ORDER BY cliente_nombre ASC');
     return filas;
   },
