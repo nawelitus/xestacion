@@ -13,6 +13,7 @@
     "axios": "^1.7.2",
     "html2canvas": "^1.4.1",
     "jspdf": "^3.0.1",
+    "jspdf-autotable": "^5.0.2",
     "jwt-decode": "^4.0.0",
     "lucide-react": "^0.523.0",
     "react": "^18.2.0",
