@@ -1,11 +1,11 @@
+// src/utils/cierreParser.js
+
 /**
  * Parsea el texto de un cierre de turno Z y lo convierte en un objeto JSON estructurado.
- * Esta es la versión completa del usuario con las correcciones de errores aplicadas.
  * @param {string} textoCierre - El contenido completo del archivo de cierre Z como un string.
- * @returns {object} Un objeto con todos los datos parseados y una sección de validación.
+ * @returns {object} Un objeto con todos los datos parseados.
  */
 export const parsearCierreZ = (textoCierre) => {
-    // Objeto principal que contendrá toda la información estructurada.
     const datosCierre = {
         encabezado: {
             numero_z: null,
@@ -27,11 +27,10 @@ export const parsearCierreZ = (textoCierre) => {
         gastos: [],
         detalleTanques: [],
         declaracionEmpleado: {},
-        validaciones: {},
         errores: []
     };
 
-    const lineas = textoCierre.split('\n').map(l => l.trim());
+    const lineas = textoCierre.split('\n');
     let seccionActual = '';
 
     const limpiarImporte = (textoImporte) => {
@@ -59,10 +58,11 @@ export const parsearCierreZ = (textoCierre) => {
 
     for (let i = 0; i < lineas.length; i++) {
         const linea = lineas[i];
-        if (linea === '') continue;
+        const lineaTrim = linea.trim();
+        if (lineaTrim === '') continue;
 
-        if (encabezados[linea]) {
-            seccionActual = encabezados[linea];
+        if (encabezados[lineaTrim]) {
+            seccionActual = encabezados[lineaTrim];
             continue;
         }
 
@@ -72,17 +72,17 @@ export const parsearCierreZ = (textoCierre) => {
             '========= CUPONES POR TARJETA ==========', '============= MEDICIONES ===============',
             '====== TICK Y FACT POR EMPLEADO ========', '=== FACTURACION POR MEDIO DE PAGO ======'
         ];
-        if (seccionesOmitidas.includes(linea)) {
+        if (seccionesOmitidas.includes(lineaTrim)) {
             seccionActual = 'OMITIR';
             continue;
         }
 
-        if (linea.startsWith('-----------------')) {
+        if (lineaTrim.startsWith('-----------------')) {
             if (seccionActual !== 'RESUMEN') seccionActual = '';
             continue;
         }
 
-        if (seccionActual !== 'RESUMEN' && linea.toUpperCase().startsWith('TOTAL')) {
+        if (seccionActual !== 'RESUMEN' && lineaTrim.toUpperCase().startsWith('TOTAL')) {
             continue;
         }
 
@@ -90,103 +90,121 @@ export const parsearCierreZ = (textoCierre) => {
 
         switch (seccionActual) {
             case 'RESUMEN':
-                if (linea.startsWith('Numero:')) {
-                    datosCierre.encabezado.numero_z = parseInt(linea.split(':')[1]?.trim(), 10);
-                } else if (linea.startsWith('Desde:')) {
-                    const textoCompleto = linea.substring(linea.indexOf(':') + 1).trim();
+                if (lineaTrim.startsWith('Numero:')) {
+                    datosCierre.encabezado.numero_z = parseInt(lineaTrim.split(':')[1]?.trim(), 10);
+                } else if (lineaTrim.startsWith('Desde:')) {
+                    const textoCompleto = lineaTrim.substring(lineaTrim.indexOf(':') + 1).trim();
                     const partes = textoCompleto.split(' ');
                     if (partes.length >= 2) {
                         datosCierre.encabezado.fecha_turno = partes[0];
                         datosCierre.encabezado.hora_inicio = partes[1];
                     }
-                } else if (linea.startsWith('Hasta:')) {
-                    const textoCompleto = linea.substring(linea.indexOf(':') + 1).trim();
+                } else if (lineaTrim.startsWith('Hasta:')) {
+                    const textoCompleto = lineaTrim.substring(lineaTrim.indexOf(':') + 1).trim();
                     const partes = textoCompleto.split(' ');
                     if (partes.length >= 2) {
                         datosCierre.encabezado.hora_fin = partes[1];
                     }
-                } else if (linea.startsWith('Cerrado por:')) {
-                    datosCierre.encabezado.cerrado_por = linea.split(':')[1]?.trim();
+                } else if (lineaTrim.startsWith('Cerrado por:')) {
+                    datosCierre.encabezado.cerrado_por = lineaTrim.split(':')[1]?.trim();
                 } else {
-                    datosCierre.resumen.push(linea);
+                    datosCierre.resumen.push(lineaTrim);
                 }
                 break;
-
-            // --- LÓGICA CORREGIDA Y ROBUSTA PARA REMITOS ---
-            case 'REMITOS':
-                {
-                    // Expresión regular para capturar las tres partes:
-                    // 1. El número del remito (ej: 00013-00010842)
-                    // 2. El nombre del cliente (puede tener espacios)
-                    // 3. El importe final
-                    const match = linea.match(/^(\S+)\s+(.+?)\s+([\d.]+)$/);
-                    if (match) {
-                        const [, numero_remito, cliente_nombre, importe_texto] = match;
-                        datosCierre.remitos.push({
-                            numero_remito: numero_remito.trim(),
-                            cliente_nombre: cliente_nombre.trim(),
-                            importe: limpiarImporte(importe_texto)
-                        });
-                    }
-                }
-                break;
-
-            case 'VENTAS_PRODUCTO':
-                 datosCierre.ventasPorProducto.push({descripcion: linea.slice(0, linea.lastIndexOf(' ')).trim(), importe: limpiarImporte(linea.slice(linea.lastIndexOf(' '))) });
-                 break;
-            case 'BAJAS_PRODUCTO': datosCierre.bajasPorProducto.push({descripcion: linea.slice(0, linea.lastIndexOf(' ')).trim(), importe: limpiarImporte(linea.slice(linea.lastIndexOf(' '))) }); break;
-            case 'PERCEPCIONES_IIBB': datosCierre.percepcionesIIBB.push({descripcion: linea.slice(0, linea.lastIndexOf(' ')).trim(), importe: limpiarImporte(linea.slice(linea.lastIndexOf(' '))) }); break;
-            case 'CUPONES': datosCierre.cupones.push({descripcion: linea.slice(0, linea.lastIndexOf(' ')).trim(), importe: limpiarImporte(linea.slice(linea.lastIndexOf(' '))) }); break;
-            case 'MERCADOPAGO': datosCierre.mercadoPago.push({descripcion: linea.slice(0, linea.lastIndexOf(' ')).trim(), importe: limpiarImporte(linea.slice(linea.lastIndexOf(' '))) }); break;
-            case 'TIRADAS': datosCierre.tiradas.push({descripcion: linea.slice(0, linea.lastIndexOf(' ')).trim(), importe: limpiarImporte(linea.slice(linea.lastIndexOf(' '))) }); break;
-            case 'AXION_ON': datosCierre.axionOn.push({descripcion: linea.slice(0, linea.lastIndexOf(' ')).trim(), importe: limpiarImporte(linea.slice(linea.lastIndexOf(' '))) }); break;
             
-            case 'INGRESOS':
-            case 'GASTOS':
-                {
-                    if (/^\d/.test(linea)) {
-                        const partes = linea.split(/\s+/);
-                        const comprobante = partes[0];
-                        const importe = limpiarImporte(partes[partes.length - 1]);
-                        const descripcion = partes.slice(1, -1).join(' ');
-                        const item = { comprobante, descripcion, importe };
-                        if (seccionActual === 'INGRESOS') datosCierre.ingresos.push(item);
-                        else datosCierre.gastos.push(item);
-                        i++;
-                    }
+            case 'MERCADOPAGO': {
+                const partes = lineaTrim.split(/\s+/);
+                const importeStr = partes.pop();
+                const importe = limpiarImporte(importeStr);
+                const desc = partes.join(' ');
+                const descripcion = desc === '' ? 'Sin Detalle' : desc;
+                datosCierre.mercadoPago.push({ descripcion, importe });
+                break;
+            }
+            
+            // ================================================================
+            // ▼▼▼ CORRECCIÓN: SEPARAR EL CASE DE PERCEPCIONES_IIBB ▼▼▼
+            // ================================================================
+            case 'PERCEPCIONES_IIBB': {
+                const partes = lineaTrim.split(/\s{2,}/);
+                if (partes.length > 1) {
+                    const importe = limpiarImporte(partes.pop());
+                    const descripcion = partes.join(' ');
+                    // Se apunta directamente a la propiedad correcta 'percepcionesIIBB'
+                    datosCierre.percepcionesIIBB.push({ descripcion, importe });
                 }
                 break;
+            }
+            // ================================================================
 
-            case 'TANQUES':
-                {
-                    const columnas = linea.split(/\s{2,}/);
-                    if (columnas.length >= 3 && !linea.toUpperCase().includes('KEROSENE')) {
-                        datosCierre.detalleTanques.push({
-                            numero: columnas[0],
-                            producto: columnas[1],
-                            despachado: limpiarImporte(columnas[columnas.length - 1])
-                        });
+            // El resto de las secciones genéricas permanecen agrupadas
+            case 'VENTAS_PRODUCTO':
+            case 'BAJAS_PRODUCTO':
+            // case 'PERCEPCIONES_IIBB': // Se quita de este grupo
+            case 'CUPONES':
+            case 'TIRADAS':
+            case 'AXION_ON': {
+                const partes = lineaTrim.split(/\s{2,}/);
+                if (partes.length > 1) {
+                    const importe = limpiarImporte(partes.pop());
+                    const descripcion = partes.join(' ');
+                    const seccionCamelCase = seccionActual.toLowerCase().replace(/_([a-z])/g, g => g[1].toUpperCase());
+                    if(datosCierre[seccionCamelCase]) {
+                        datosCierre[seccionCamelCase].push({ descripcion, importe });
                     }
                 }
                 break;
-            case 'DECLARACION_EMPLEADO':
-                {
-                    const [clave, valor] = linea.split(':');
-                    if (clave && valor) {
-                        const claveNormalizada = clave.trim().toLowerCase().replace(/ /g, '_');
-                        datosCierre.declaracionEmpleado[claveNormalizada] = limpiarImporte(valor);
-                    }
+            }
+            
+            case 'REMITOS': {
+                const match = lineaTrim.match(/^(\S+)\s+(.+?)\s+([\d.]+)$/);
+                if (match) {
+                    const [, numero_remito, cliente_nombre, importe_texto] = match;
+                    datosCierre.remitos.push({ numero_remito: numero_remito.trim(), cliente_nombre: cliente_nombre.trim(), importe: limpiarImporte(importe_texto) });
                 }
                 break;
+            }
+            case 'INGRESOS':
+            case 'GASTOS': {
+                if (/^\d/.test(lineaTrim)) {
+                    const partes = lineaTrim.split(/\s+/);
+                    const comprobante = partes[0];
+                    const importe = limpiarImporte(partes[partes.length - 1]);
+                    const descripcion = partes.slice(1, -1).join(' ');
+                    const item = { comprobante, descripcion, importe };
+                    if (seccionActual === 'INGRESOS') datosCierre.ingresos.push(item);
+                    else datosCierre.gastos.push(item);
+                    i++;
+                }
+                break;
+            }
+            case 'TANQUES': {
+                const columnas = lineaTrim.split(/\s{2,}/);
+                if (columnas.length >= 3 && !lineaTrim.toUpperCase().includes('KEROSENE')) {
+                    datosCierre.detalleTanques.push({
+                        numero: columnas[0],
+                        producto: columnas[1],
+                        despachado: limpiarImporte(columnas[columnas.length - 1])
+                    });
+                }
+                break;
+            }
+            case 'DECLARACION_EMPLEADO': {
+                const [clave, valor] = lineaTrim.split(':');
+                if (clave && valor) {
+                    const claveNormalizada = clave.trim().toLowerCase().replace(/ /g, '_');
+                    datosCierre.declaracionEmpleado[claveNormalizada] = limpiarImporte(valor);
+                }
+                break;
+            }
         }
     }
 
     const extraerTotalDelResumen = (textoABuscar) => {
         const lineaResumen = datosCierre.resumen.find(l => l.toUpperCase().includes(textoABuscar.toUpperCase()));
         if (!lineaResumen) return 0;
-        const indiceSeparador = Math.max(lineaResumen.lastIndexOf(':'), lineaResumen.lastIndexOf(' '));
-        if (indiceSeparador === -1) return 0;
-        const valorTexto = lineaResumen.substring(indiceSeparador + 1);
+        const partes = lineaResumen.split(/\s+/);
+        const valorTexto = partes[partes.length -1];
         return limpiarImporte(valorTexto);
     };
 
@@ -195,10 +213,10 @@ export const parsearCierreZ = (textoCierre) => {
     datosCierre.encabezado.total_gastos = extraerTotalDelResumen('-GASTOS');
     datosCierre.encabezado.total_a_rendir = extraerTotalDelResumen('TOTAL A RENDIR');
     datosCierre.encabezado.total_faltante = extraerTotalDelResumen('FALTANTE');
-    datosCierre.encabezado.total_cupones = extraerTotalDelResumen('TOTAL CUPONES');
-    datosCierre.encabezado.total_mercadopago = extraerTotalDelResumen('TOTAL MERCADOPAGO');
-    datosCierre.encabezado.total_axion_on = extraerTotalDelResumen('TOTAL AXION ON');
-    datosCierre.encabezado.total_tiradas = datosCierre.tiradas.reduce((sum, item) => sum + item.importe, 0);
+    datosCierre.encabezado.total_mercadopago = extraerTotalDelResumen('-MERCADOPAGO');
+    datosCierre.encabezado.total_axion_on = extraerTotalDelResumen('-AXION ON');
+    datosCierre.encabezado.total_cupones = extraerTotalDelResumen('-COBRADO EN TARJETAS'); 
+    datosCierre.encabezado.total_tiradas = extraerTotalDelResumen('-TIRADAS');
 
     return datosCierre;
 };

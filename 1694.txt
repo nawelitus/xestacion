@@ -1,0 +1,185 @@
+ <<<<< CIERRE DE TURNO >>>>>        
+C.Costo:        LIQUIDOS
+Numero:         1694
+Desde:          16/7/2025 14:02:32
+Hasta:          16/7/2025 21:52:20
+Tickets:        3
+Facturas:       9
+Estado:         CERRADO A CONTROLAR
+Cerrado por: LUQUES OSCAR ALFFREDO
+Empleados: 
+LUQUES OSCAR ALFFREDO
+Montenegro Rosa
+========================================
+COMBUSTIBLES                  5124475.00
+VENTAS DE STOCK                 54800.00
+BAJAS                               0.00
+PERCEPCIONES DE IIBB             9037.66
+INGRESOS DE EFECTIVO         22554655.40
+TOTAL BRUTO                  27742968.06
+-REMITOS                      2882745.00
+-GASTOS                         30300.00
+-AXION CARD                         0.00
+-TIRADAS                      1286000.00
+-MERCADOPAGO                   367892.90
+-COBRADO EN TARJETAS                0.00
+-COBRADO EN CHEQUES                 0.00
+-COBRADO EN CREDITOS                0.00
+-COBRADO EN TICKETS                 0.00
+TOTAL A RENDIR               23176030.16
+DECLARADO EN EFECTIVO               0.00
+----------------------------------------
+FALTANTE                     23176030.16
+======== TOTALES POR PRODUCTO ==========
+Producto             Litros      Importe
+AXION_SUPER          662.57    944160.00
+QUANTIUM             147.84    248660.00
+AXION_DIESEL_X      2004.07   2889868.00
+QUANTIUM_DIESE       639.92   1041787.00
+DIESEL 1500            0.00         0.00
+KEROSENE               0.00         0.00
+----------------------------------------
+TOTAL               3454.39   5124475.00
+DESPACHOS: 73
+====== DETALLE DE TOTALIZADORES ========
+Nr Producto         Inicial        Final
+ 1 AXION_SUPER         0.00         0.00
+ 2 QUANTIUM            0.00         0.00
+ 3 QUANTIUM            0.00         0.00
+ 4 AXION_SUPER         0.00         0.00
+ 5 QUANTIUM            0.00         0.00
+ 6 QUANTIUM            0.00         0.00
+ 7 AXION_SUPER         0.00         0.00
+ 8 QUANTIUM            0.00         0.00
+ 9 AXION_SUPER         0.00         0.00
+10 AXION_SUPER         0.00         0.00
+11 QUANTIUM            0.00         0.00
+12 AXION_SUPER         0.00         0.00
+13 QUANTIUM_DI         0.00         0.00
+14 QUANTIUM_DI         0.00         0.00
+15 AXION_DIESE         0.00         0.00
+16 QUANTIUM_DI         0.00         0.00
+17 QUANTIUM_DI         0.00         0.00
+18 AXION_DIESE         0.00         0.00
+19 AXION_DIESE         0.00         0.00
+20 QUANTIUM_DI         0.00         0.00
+21 KEROSENE            0.00         0.00
+=== TICK FACT Y REM DE COMBUSTIBLE =====
+Producto           Cantidad      Importe
+AXION_SUPER          141.93    202246.00
+QUANTIUM              69.92    117607.00
+AXION_DIESEL_X      1894.07   2731246.00
+QUANTIUM_DIESE       597.25    972320.00
+----------------------------------------
+TOTAL                         4023419.00
+========== VENTAS POR RUBRO ============
+   6 ACC ACCESORIOS AUTOMOTOR    4500.00
+   3 LAMP LAMPARAS              50300.00
+----------------------------------------
+   9 TOTAL                      54800.00
+========= VENTAS POR PRODUCTO ==========
+   1 DUCHAS                      2000.00
+   5 FICHA TERMO                 2500.00
+   1 LAMP 64155 24V 70W H1 S/C   8700.00
+   2 LAMP 64215  24V 70W H7     41600.00
+----------------------------------------
+   9 TOTAL                      54800.00
+========= DETALLE DE REMITOS ===========
+00013-00010867 JUAN PALI PUERT  30118.00
+00014-00012332 FLUXA SA         39007.00
+00014-00012333 FABIAN MARQUEZ   50005.00
+00014-00012334 ALPA VIAL S.A.   28500.00
+00015-00044838 MUNICIPALIDAD G  30008.00
+00015-00044839 MUNICIPALIDAD G  40000.00
+00015-00044841 MUNICIPALIDAD D 144200.00
+00015-00044842 NUTRIJO AGROSER 465237.00
+00015-00044843 RAULUMARS S A    36407.00
+00015-00044844 HOSPITAL GENERA 114500.00
+00015-00044845 CORRU LAVALLERO   7330.00
+00015-00044846 MUNICIPALIDAD G  79400.00
+00015-00044847 ALCUAZ MATIAS   961405.00
+00015-00044848 GUARDIA MARIANO 321415.00
+00021-00002723 AGROP CINCO DE  107305.00
+00021-00002724 JUAN PALI PUERT  75003.00
+00021-00002725 ALPA VIAL S.A.   78404.00
+00021-00002726 HOSPITAL GENERA  93000.00
+00021-00002727 MUNICIPALIDAD G  78701.00
+00021-00002728 DON MARIO SRL   102800.00
+----------------------------------------
+TOTAL                         2882745.00
+======== PERCEPCIONES DE IIBB ==========
+    6684 GONCEBAT JOSE MARTIN    3159.84
+   11473 GABOTTO ADOLFO ADRIAN   2635.98
+   18329 E.3. SRL                1896.78
+   18331 SANCHEZ SEBASTIAN       1345.06
+----------------------------------------
+         IMPORTE                 9037.66
+========= DETALLE MERCADOPAGO ==========
+                                10016.00
+                                50011.00
+                                30005.00
+                                 7319.00
+                               129162.84
+                                30005.00
+                                41349.06
+                                15004.00
+                                20006.00
+                                15005.00
+                                20010.00
+----------------------------------------
+         TOTAL                 367892.90
+========= DETALLE DE TIRADAS ===========
+00015-00000776 Montenegro Ros  746000.00
+00017-00000021 Montenegro Ros  540000.00
+----------------------------------------
+TOTAL                         1286000.00
+========= DETALLE DE INGRESOS ==========
+00015-00000059 PAGO LUCHETTA   224450.00
+         Montenegro Rosa          
+00015-00000060 CHEQUES PAGO D 16882652.00
+         Montenegro Rosa          
+00015-00000061 TRANS EMANUELL   97507.00
+         LUQUES OSCAR ALFFREDO    
+00015-00000062 A FAVOR          59400.00
+         LUQUES OSCAR ALFFREDO    
+00017-00000013 PAGO CHEQUE RA   45624.96
+         Montenegro Rosa          
+00017-00000014 PAGO CHEQUES A 5245021.44
+         Montenegro Rosa          
+----------------------------------------
+         TOTAL                22554655.40
+========= DETALLE DE GASTOS ============
+00015-00000114 FLETE FILTROS    16300.00
+         Montenegro Rosa          
+00015-00000115 A FAVOR 14/07    14000.00
+         Montenegro Rosa          
+----------------------------------------
+         TOTAL                  30300.00
+========= DETALLE DE TANQUES ===========
+Nr Producto     Inicio Comp. Final Vent.
+ 1 AXION_DIESEL_ 13730     0 12142  1588
+ 2 AXION_SUPER   14536     0 14175   361
+ 3 QUANTIUM       8632     0  8632     0
+ 4 QUANTIUM       5023     0  4905   118
+ 5 QUANTIUM_DIES 10527     0 10527     0
+ 6 AXION_SUPER   15191     0 14858   333
+ 7 AXION_DIESEL_ 15907     0 15397   510
+ 8 KEROSENE         68     0    68     0
+============= MEDICIONES ===============
+Nr Producto      Final Medicion   Difer.
+====== TICK Y FACT POR EMPLEADO ========
+LUQUES OSCAR ALFFREDO         1193474.00
+Montenegro Rosa                  2000.00
+----------------------------------------
+TOTAL                         1195474.00
+=== FACTURACION POR MEDIO DE PAGO ======
+TARJETA                             0.00
+CHEQUES                             0.00
+CREDITOS                            0.00
+TICKETS                             0.00
+====== DECLARACION DEL EMPLEADO ========
+EFECTIVO                            0.00
+TARJETA                             0.00
+CHEQUES                             0.00
+CREDITOS                            0.00
+TICKETS                             0.00

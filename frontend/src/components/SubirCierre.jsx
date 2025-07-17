@@ -103,7 +103,9 @@ const SubirCierre = ({ onUploadSuccess }) => {
             ) : (
               <p className="text-texto-secundario">Arrastra un archivo .txt aquí, o haz clic.</p>
             )}
+           
           </div>
+          
         )}
 
         {modo === 'texto' && (
@@ -114,20 +116,21 @@ const SubirCierre = ({ onUploadSuccess }) => {
             className="w-full h-full min-h-[150px] p-3 bg-secundario border border-borde rounded-md text-texto-principal outline-none focus:ring-2 focus:ring-blue-500 resize-none"
           />
         )}
+        
       </div>
-      
-      <div className="mt-4">
-        {estadoCarga === 'cargando' && <div className="text-center flex items-center justify-center gap-2 text-blue-400"><Loader className="animate-spin" /> Procesando...</div>}
-        {estadoCarga === 'exito' && <div className="text-center flex items-center justify-center gap-2 text-green-400"><CheckCircle /> {mensaje}</div>}
-        {estadoCarga === 'error' && <div className="text-center flex items-center justify-center gap-2 text-red-400"><AlertTriangle /> {mensaje}</div>}
-
-        <button 
+       <button 
           onClick={handleProcesar} 
           disabled={estadoCarga === 'cargando'}
           className="w-full mt-4 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-900 disabled:cursor-not-allowed text-white font-bold py-2.5 rounded-md flex items-center justify-center gap-2 transition-colors"
         >
           Procesar
         </button>
+      <div className="mt-4">
+        {estadoCarga === 'cargando' && <div className="text-center flex items-center justify-center gap-2 text-blue-400"><Loader className="animate-spin" /> Procesando...</div>}
+        {estadoCarga === 'exito' && <div className="text-center flex items-center justify-center gap-2 text-green-400"><CheckCircle /> {mensaje}</div>}
+        {estadoCarga === 'error' && <div className="text-center flex items-center justify-center gap-2 text-red-400"><AlertTriangle /> {mensaje}</div>}
+
+        
       </div>
     </div>
   );

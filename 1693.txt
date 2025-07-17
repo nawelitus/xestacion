@@ -1,0 +1,195 @@
+     <<<<< CIERRE DE TURNO >>>>>        
+C.Costo:        LIQUIDOS
+Numero:         1693
+Desde:          16/7/2025 06:01:25
+Hasta:          16/7/2025 14:02:32
+Tickets:        8
+Facturas:       7
+Estado:         CERRADO A CONTROLAR
+Cerrado por: Eros Amir Calgaro
+Empleados: 
+Eros Amir Calgaro
+STRASSERA CAROLINA
+========================================
+COMBUSTIBLES                  4473941.00
+VENTAS DE STOCK                 26700.00
+BAJAS                               0.00
+PERCEPCIONES DE IIBB             2340.73
+INGRESOS DE EFECTIVO                0.00
+TOTAL BRUTO                   4502981.73
+-REMITOS                      1666447.00
+-GASTOS                        120500.00
+-AXION CARD                         0.00
+-TIRADAS                      1290000.00
+-MERCADOPAGO                   792176.96
+-AXION ON                        3500.04
+-COBRADO EN TARJETAS            35084.06
+-COBRADO EN CHEQUES                 0.00
+-COBRADO EN CREDITOS                0.00
+-COBRADO EN TICKETS                 0.00
+TOTAL A RENDIR                 595273.67
+DECLARADO EN EFECTIVO               0.00
+----------------------------------------
+FALTANTE                       595273.67
+======== TOTALES POR PRODUCTO ==========
+Producto             Litros      Importe
+AXION_SUPER          849.85   1211037.00
+QUANTIUM             187.38    315174.00
+AXION_DIESEL_X       889.20   1282230.00
+QUANTIUM_DIESE      1023.03   1665500.00
+DIESEL 1500            0.00         0.00
+KEROSENE               0.00         0.00
+----------------------------------------
+TOTAL               2949.47   4473941.00
+DESPACHOS: 75
+====== DETALLE DE TOTALIZADORES ========
+Nr Producto         Inicial        Final
+ 1 AXION_SUPER         0.00         0.00
+ 2 QUANTIUM            0.00         0.00
+ 3 QUANTIUM            0.00         0.00
+ 4 AXION_SUPER         0.00         0.00
+ 5 QUANTIUM            0.00         0.00
+ 6 QUANTIUM            0.00         0.00
+ 7 AXION_SUPER         0.00         0.00
+ 8 QUANTIUM            0.00         0.00
+ 9 AXION_SUPER         0.00         0.00
+10 AXION_SUPER         0.00         0.00
+11 QUANTIUM            0.00         0.00
+12 AXION_SUPER         0.00         0.00
+13 QUANTIUM_DI         0.00         0.00
+14 QUANTIUM_DI         0.00         0.00
+15 AXION_DIESE         0.00         0.00
+16 QUANTIUM_DI         0.00         0.00
+17 QUANTIUM_DI         0.00         0.00
+18 AXION_DIESE         0.00         0.00
+19 AXION_DIESE         0.00         0.00
+20 QUANTIUM_DI         0.00         0.00
+21 KEROSENE            0.00         0.00
+=== TICK FACT Y REM DE COMBUSTIBLE =====
+Producto           Cantidad      Importe
+AXION_SUPER          345.16    491856.00
+QUANTIUM             113.99    191737.00
+AXION_DIESEL_X       602.54    861859.96
+QUANTIUM_DIESE       665.47   1083384.00
+----------------------------------------
+TOTAL                         2628836.96
+========== VENTAS POR RUBRO ============
+   9 ACC ACCESORIOS AUTOMOTOR   26700.00
+----------------------------------------
+   9 TOTAL                      26700.00
+========= VENTAS POR PRODUCTO ==========
+   1 AGUA DESTILADA + REFRIGER   5100.00
+   6 FICHA TERMO                 3000.00
+   2 TR70- 180 TRICI ESCOBILLA  18600.00
+----------------------------------------
+   9 TOTAL                      26700.00
+========= DETALLE DE REMITOS ===========
+00015-00044821 MUNICIPALIDAD G 150000.00
+00015-00044822 MUNICIPALIDAD G  46035.00
+00015-00044823 MUNICIPALIDAD D  69011.00
+00015-00044824 MUNICIPALIDAD G  75702.00
+00015-00044825 MUNICIPALIDAD G  98512.00
+00015-00044826 MUNICIPALIDAD G 113967.00
+00015-00044827 ECHANDI MARTIN   93459.00
+00015-00044828 MUNICIPALIDAD G  62002.00
+00015-00044829 MUNICIPALIDAD G  65151.00
+00015-00044830 ROLANDO JUAN AN  14250.00
+00015-00044831 MUNICIPALIDAD G 253991.00
+00015-00044832 MUNICIPALIDAD G  30000.00
+00015-00044833 ARMADORA DEL PL  43270.00
+00015-00044834 MUNICIPALIDAD D  57000.00
+00015-00044835 MUNICIPALIDAD D  27131.00
+00015-00044836 MUNICIPALIDAD G  60000.00
+00015-00044837 ECHANDI MARTIN  255837.00
+00021-00002720 MUNICIPALIDAD G  86009.00
+00021-00002721 MUNICIPALIDAD D  65120.00
+----------------------------------------
+TOTAL                         1666447.00
+======== PERCEPCIONES DE IIBB ==========
+    4076 LA MAREA PEZ S. A.       149.44
+   11469 SCI PHARMA SRL           580.06
+   11470 CAMUZZI GAS PAMPEANA     184.46
+   11471 PMDP SA                  376.25
+   11472 CABRALES SA              626.34
+   18328 FLORES FEDERICO          424.18
+----------------------------------------
+         IMPORTE                 2340.73
+=============== CUPONES ================
+00011469 VISA DEBITO 178-610    35084.06
+----------------------------------------
+TOTAL                           35084.06
+========= CUPONES POR TARJETA ==========
+VISA DEBITO                     35084.06
+----------------------------------------
+TOTAL                           35084.06
+========= DETALLE MERCADOPAGO ==========
+                                29996.00
+                                20021.00
+                                20000.00
+                                20006.00
+GODOY JULIO CESAR               64313.00
+                                20006.00
+                                20009.00
+                               266208.00
+                                66508.96
+                                 9999.00
+                                 7125.00
+                                15004.00
+                                75020.00
+                                49998.00
+                                45953.00
+                                62010.00
+----------------------------------------
+         TOTAL                 792176.96
+========= DETALLE DE TIRADAS ===========
+00015-00000770 Eros Amir Calg  500000.00
+00015-00000771 Eros Amir Calg  260000.00
+00015-00000772 Eros Amir Calg   66000.00
+00015-00000773 Eros Amir Calg  210000.00
+00015-00000774 Eros Amir Calg  180000.00
+00015-00000775 Eros Amir Calg   74000.00
+----------------------------------------
+TOTAL                         1290000.00
+============== AXION ON ================
+00013-00018327 (2034) - 12%, Dt  3500.04
+----------------------------------------
+TOTAL                            3500.04
+========= DETALLE DE GASTOS ============
+00015-00000110 NICO SABEIRO     50000.00
+         STRASSERA CAROLINA       
+00015-00000111 PATRULLA MUNI    37000.00
+         STRASSERA CAROLINA       
+00015-00000112 POLICIA VIAL D   28500.00
+         Eros Amir Calgaro        
+00015-00000113 ACCION SOCIAL     5000.00
+         STRASSERA CAROLINA       
+----------------------------------------
+         TOTAL                 120500.00
+========= DETALLE DE TANQUES ===========
+Nr Producto     Inicio Comp. Final Vent.
+ 1 AXION_DIESEL_ 14339     0 13730   609
+ 2 AXION_SUPER   15021     0 14536   485
+ 3 QUANTIUM       8632     0  8632     0
+ 4 QUANTIUM       5171     0  5023   148
+ 5 QUANTIUM_DIES 10527     0 10527     0
+ 6 AXION_SUPER   15600     0 15191   409
+ 7 AXION_DIESEL_ 16213     0 15907   306
+ 8 KEROSENE         68     0    68     0
+============= MEDICIONES ===============
+Nr Producto      Final Medicion   Difer.
+====== TICK Y FACT POR EMPLEADO ========
+Eros Amir Calgaro              576898.96
+STRASSERA CAROLINA             139632.00
+----------------------------------------
+TOTAL                          716530.96
+=== FACTURACION POR MEDIO DE PAGO ======
+TARJETA                         35084.06
+CHEQUES                             0.00
+CREDITOS                            0.00
+TICKETS                             0.00
+====== DECLARACION DEL EMPLEADO ========
+EFECTIVO                            0.00
+TARJETA                             0.00
+CHEQUES                             0.00
+CREDITOS                            0.00
+TICKETS                             0.00

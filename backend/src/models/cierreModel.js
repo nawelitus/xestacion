@@ -4,13 +4,8 @@ import db from '../config/db.js';
 
 const CierreModel = {
 
-  /**
-   * Ejecuta el Stored Procedure 'sp_insertar_cierre_completo' para guardar
-   * un cierre y todos sus detalles en una única transacción.
-   * @param {object} datosCierre - Objeto que contiene todos los parámetros para el SP.
-   * @returns {Promise<object>} - El resultado de la inserción, incluyendo el ID del nuevo cierre.
-   */
   async insertarCierreCompleto(datosCierre) {
+    // ... (código de esta función sin cambios)
     const {
       numero_z, fecha_turno, hora_inicio, hora_fin, total_bruto,
       total_remitos, total_gastos, total_a_rendir, total_faltante,
@@ -22,11 +17,7 @@ const CierreModel = {
       cupones_json, bajas_producto_json, percepciones_iibb_json,
       mercadopago_json, tiradas_json, axion_on_json, tanques_json
     } = datosCierre;
-
-    // CORRECCIÓN: Se eliminó un '?' extra. Ahora hay 30 placeholders,
-    // que coinciden con los 30 parámetros del Stored Procedure.
     const query = 'CALL sp_insertar_cierre_completo(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)';
-    
     try {
       const [resultado] = await db.query(query, [
         numero_z, fecha_turno, hora_inicio, hora_fin, total_bruto,
@@ -39,7 +30,6 @@ const CierreModel = {
         cupones_json, bajas_producto_json, percepciones_iibb_json,
         mercadopago_json, tiradas_json, axion_on_json, tanques_json
       ]);
-      // El SP devuelve el ID del cierre insertado
       return resultado[0][0]; 
     } catch (error) {
       console.error('Error en el modelo al insertar cierre completo:', error);
@@ -47,10 +37,8 @@ const CierreModel = {
     }
   },
 
-  /**
-   * Busca el detalle completo de un Cierre Z por su ID.
-   */
   async buscarDetallePorId(id) {
+    // ... (código de esta función sin cambios)
     const detalleCompleto = {};
     const [cabeceras] = await db.query(
       `SELECT cz.*, u.nombre_completo as usuario_carga_nombre 
@@ -102,10 +90,8 @@ const CierreModel = {
     return detalleCompleto;
   },
 
-  /**
-   * Lista los cierres de caja más recientes.
-   */
   async listarRecientes() {
+    // ... (código de esta función sin cambios)
     const query = `
       SELECT 
         cz.id, cz.numero_z, cz.fecha_turno, cz.total_a_rendir, 
@@ -125,19 +111,60 @@ const CierreModel = {
   },
 
   /**
-   * Elimina un Cierre Z por su ID.
+   * @MODIFICADO
+   * Elimina un Cierre Z y todos sus registros asociados en diferentes tablas
+   * utilizando una transacción para garantizar la integridad de los datos.
    */
   async eliminarCierreCompletoPorId(id) {
-    const query = 'DELETE FROM cierres_z WHERE id = ?';
+    const connection = await db.getConnection();
     try {
-      const [resultado] = await db.query(query, [id]);
+      // Inicia la transacción
+      await connection.beginTransaction();
+
+      // Lista de todas las tablas detalle que tienen una relación con `cierres_z`
+      const tablasDetalle = [
+        'movimientos_cta_cte',      // La que reportaste
+        'caja_diaria_creditos',       // También se relaciona al procesar
+        'retiros_personal',           // También se relaciona al procesar
+        'movimientos_caja_z',         // Gastos e Ingresos
+        'cierre_z_axion_on',
+        'cierre_z_bajas_producto',
+        'cierre_z_mercadopago',
+        'cierre_z_percepciones_iibb',
+        'cierre_z_tanques',
+        'cierre_z_tiradas',
+        'cierre_z_ventas_producto'
+      ];
+
+      // Crea una promesa de borrado para cada tabla de detalle
+      const promesasDelete = tablasDetalle.map(tabla =>
+        connection.query(`DELETE FROM ${tabla} WHERE cierre_z_id = ?`, [id])
+      );
+      
+      // Ejecuta todas las eliminaciones en paralelo
+      await Promise.all(promesasDelete);
+
+      // Finalmente, elimina el registro principal de la tabla `cierres_z`
+      const [resultado] = await connection.query('DELETE FROM cierres_z WHERE id = ?', [id]);
+
+      // Si no se afectó ninguna fila, significa que el ID no existía.
       if (resultado.affectedRows === 0) {
         throw new Error('No se encontró un Cierre Z con el ID proporcionado para eliminar.');
       }
-      return { mensaje: 'Cierre Z eliminado exitosamente.' };
+
+      // Si todo fue exitoso, confirma los cambios
+      await connection.commit();
+      
+      return { mensaje: 'Cierre Z y todos sus datos asociados han sido eliminados.' };
+
     } catch (error) {
-      console.error('Error en el modelo al eliminar cierre:', error);
-      throw error;
+      // Si ocurre cualquier error, deshace todos los cambios
+      await connection.rollback();
+      console.error(`Error en el modelo al eliminar el cierre completo con ID ${id}:`, error);
+      throw error; // Lanza el error para que el controlador lo maneje
+    } finally {
+      // Siempre libera la conexión de vuelta al pool
+      connection.release();
     }
   }
 };

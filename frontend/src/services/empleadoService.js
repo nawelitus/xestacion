@@ -1,10 +1,9 @@
+// Contenido COMPLETO y ACTUALIZADO para: src/services/empleadoService.js
+
 import api from './api';
 
-/**
- * Obtiene la lista completa de empleados desde la API.
- * @returns {Promise<Array>} Un arreglo con los empleados.
- */
 export const obtenerTodosLosEmpleados = async () => {
+    // ... (sin cambios)
     try {
         const { data } = await api.get('/empleados');
         return data;
@@ -14,7 +13,21 @@ export const obtenerTodosLosEmpleados = async () => {
     }
 }
 
+// ================================================================
+// ▼▼▼ NUEVA FUNCIÓN DE SERVICIO ▼▼▼
+// ================================================================
+export const crearNuevoEmpleado = async (nombreCompleto) => {
+    try {
+        const { data } = await api.post('/empleados', { nombre_completo: nombreCompleto });
+        return data; // Devuelve { mensaje, empleado }
+    } catch (error) {
+        console.error("Error al crear el nuevo empleado:", error);
+        throw error;
+    }
+}
+
 export const obtenerResumenDeRetiros = async () => {
+    // ... (sin cambios)
     try {
         const { data } = await api.get('/empleados/resumen-retiros');
         return data;
@@ -24,19 +37,13 @@ export const obtenerResumenDeRetiros = async () => {
     }
 };
 
-/**
- * @NUEVO
- * Obtiene el historial detallado de retiros para un solo empleado.
- * @param {string} nombre - El nombre del empleado a consultar.
- * @returns {Promise<Array>}
- */
 export const obtenerDetalleDeRetiros = async (nombre) => {
+    // ... (sin cambios)
     try {
-        // Usamos encodeURIComponent para asegurar que los nombres con espacios o caracteres especiales funcionen en la URL.
         const { data } = await api.get(`/empleados/detalle-retiros/${encodeURIComponent(nombre)}`);
         return data;
     } catch (error) {
         console.error(`Error al obtener el detalle de retiros para ${nombre}:`, error);
         throw error;
     }
-    };//
+};
