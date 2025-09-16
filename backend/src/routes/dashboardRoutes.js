@@ -8,5 +8,6 @@ const router = Router();
 // @desc    Obtiene todos los datos para el dashboard principal
 // @access  Privado
 router.get('/', verificarToken, DashboardController.obtenerResumen);
+router.get('/ultimos-por-turno', verificarToken, DashboardController.ultimosPorTurno);
 
 export default router;

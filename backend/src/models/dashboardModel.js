@@ -47,6 +47,42 @@ const DashboardModel = {
       throw new Error('Error al consultar los datos del dashboard en la base de datos.');
     }
   }
+,
+  // ► NUEVO: últimos 3 cierres por numero_z con turno y faltante calculados
+  async ultimosPorTurno() {
+    const [rows] = await pool.query(`
+      SELECT
+        t.id,
+        t.numero_z,
+        t.fecha_turno,
+        t.hora_inicio,
+        t.total_bruto,
+        t.caja_procesada,
+        t.diferencia_final,
+        t.total_faltante,
+        CASE
+          WHEN TIME(t.hora_inicio) BETWEEN '04:00:00' AND '10:00:00' THEN 'MAÑANA'
+          WHEN TIME(t.hora_inicio) BETWEEN '12:00:00' AND '16:00:00' THEN 'TARDE'
+          WHEN TIME(t.hora_inicio) BETWEEN '20:00:00' AND '23:00:00' THEN 'NOCHE'
+          ELSE 'OTRO'
+        END AS turno,
+        CASE
+          WHEN t.caja_procesada = 1 THEN t.diferencia_final
+          ELSE t.total_faltante
+        END AS faltante
+      FROM (
+        SELECT id, numero_z, fecha_turno, hora_inicio, total_bruto,
+               caja_procesada, diferencia_final, total_faltante
+        FROM cierres_z
+        ORDER BY numero_z DESC
+        LIMIT 3
+      ) AS t
+      ORDER BY t.numero_z DESC
+    `);
+
+    return rows; // array de 3 items
+  },
 };
+
 
 export default DashboardModel;
